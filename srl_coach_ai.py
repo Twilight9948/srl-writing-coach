@@ -7,7 +7,7 @@ import os
 import requests
 
 # ========== API Configuration ==========
-DEEPSEEK_API_KEY = "srl-writing-coach-d5dvf4d5143ef8"
+DEEPSEEK_API_KEY = "sk-e2b1fab64b754d69b45ca099f9e49d10"
 
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
