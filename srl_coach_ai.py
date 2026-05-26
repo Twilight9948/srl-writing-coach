@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 import json
 import os
-from tcb_admin_python import TCB
+from cloudbase_manager import CloudBaseClient
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = "sk-e2b1fab64b754d69b45ca099f9e49d10"
@@ -15,19 +15,50 @@ deepseek_client = OpenAI(
 )
 
 # ========== 腾讯云开发配置 ==========
-# ！重要！请替换成你自己的值
-TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"  # 你的环境ID
-TCB_SECRET_ID = "AKIDQilaCakhQvBD1cz82jGZfZEfuwmRv9Bx"  # 在 https://console.cloud.tencent.com/cam/capi 获取
-TCB_SECRET_KEY = "XopLhpiNm0yg7JG8pIYZLtMaZLr77rKW"  # 在 https://console.cloud.tencent.com/cam/capi 获取
+TCB_SECRET_ID = "AKIDQilaCakhQvBD1cz82jGZfZEfuwmRv9Bx"
+TCB_SECRET_KEY = "XopLhpiNm0yg7JG8pIYZLtMaZLr77rKW"
+TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"
 
-# 初始化 TCB
-tcb = TCB(
-    env=TCB_ENV_ID,
-    secret_id=TCB_SECRET_ID,
-    secret_key=TCB_SECRET_KEY
-)
+def init_cloudbase():
+    """初始化 CloudBase 客户端"""
+    try:
+        client = CloudBaseClient(
+            secret_id=TCB_SECRET_ID,
+            secret_key=TCB_SECRET_KEY,
+            env_id=TCB_ENV_ID
+        )
+        return client
+    except Exception as e:
+        print(f"CloudBase 初始化失败: {e}")
+        return None
 
-# ========== SRL System Prompt with Originality Check ==========
+def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count, conversation, test_round="pre"):
+    """保存数据到腾讯云数据库"""
+    try:
+        client = init_cloudbase()
+        if client is None:
+            return False
+        
+        db = client.database()
+        collection = db.collection("writing_sessions")
+        
+        result = collection.add({
+            "student_id": student_id,
+            "student_name": student_name,
+            "test_round": test_round,
+            "plan_completed": plan_completed,
+            "monitoring_count": monitoring_count,
+            "conversation": conversation,
+            "created_at": datetime.now().isoformat()
+        })
+        
+        print(f"✅ 数据保存成功: {student_id}")
+        return True
+    except Exception as e:
+        print(f"❌ 保存失败: {e}")
+        return False
+
+# ========== SRL System Prompt ==========
 SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated Learning (SRL) Theory.
 
 ## CRITICAL LANGUAGE RULE: RESPOND IN 100% ENGLISH. NO CHINESE CHARACTERS.
@@ -36,7 +67,7 @@ SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated
 1. **NEVER praise users for copying examples verbatim**
 2. **ALWAYS detect when users paste your own examples back to you**
 3. **If a user copies your example word-for-word (80%+ match), respond with:**
-   "⚠️ I notice you copied my example sentence. That's okay for learning, but now let's write YOUR OWN version. Change at least 3 words to make it yours. Try: [suggest a small change]"
+   "⚠️ I notice you copied my example sentence. That's okay for learning, but now let's write YOUR OWN version. Change at least 3 words to make it yours."
 
 4. **Check for copying by comparing user input to your last response**
 5. **When you detect copying, don't praise — redirect to original thinking**
@@ -47,7 +78,6 @@ Help students complete Plan → Check → Reflect for ENGLISH writing with ORIGI
 
 ## Phase 1: Plan (Forethought)
 - Help set goals, create outline in English
-- Provide examples but mark them clearly as "EXAMPLE:"
 - End with "Now write ONE original sentence"
 
 ## Phase 2: Check (Performance)
@@ -62,22 +92,10 @@ Check five aspects:
 - Guide reflection on learning process
 - Ask: "What did you write that was original?"
 
-## Response Examples:
-
-❌ WRONG: "That's a great thesis! Well done! Let's continue."
-✅ CORRECT: "I see you used my example sentence. That's fine for practice, but now write YOUR version. Change 'threaten our homes' to something personal to you."
-
-❌ WRONG: "Perfect! Excellent work!"
-✅ CORRECT: "Good start! Now add one specific detail that comes from YOUR own experience or opinion."
-
-❌ WRONG: "Great job copying my example!"
-✅ CORRECT: "That's the example I gave. Now try changing the beginning to make it yours."
-
 ## Core Rules
 1. NEVER write full paragraphs for the user
 2. End each response with ONE small actionable step
-3. Detect and redirect copying, don't praise it
-4. Only celebrate genuine original thinking"""
+3. Detect and redirect copying, don't praise it"""
 
 # ========== Data Storage Functions ==========
 DATA_DIR = "srl_writing_data"
@@ -105,31 +123,8 @@ def save_conversation(user_id: str, conversation_data: dict):
     
     return True
 
-def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count, conversation, test_round="pre"):
-    """使用 SDK 保存数据到腾讯云开发数据库"""
-    try:
-        db = tcb.database()
-        collection = db.collection("writing_sessions")
-        
-        result = collection.add({
-            "student_id": student_id,
-            "student_name": student_name,
-            "test_round": test_round,
-            "plan_completed": plan_completed,
-            "monitoring_count": monitoring_count,
-            "conversation": conversation,
-            "created_at": datetime.now().isoformat()
-        })
-        
-        print(f"✅ CloudBase保存成功: {student_id}")
-        return True
-    except Exception as e:
-        print(f"❌ CloudBase保存失败: {e}")
-        return False
-
 # ========== Login/Session State ==========
 def init_session_state():
-    """初始化所有 session state 变量"""
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.user_id = None
@@ -142,7 +137,6 @@ def init_session_state():
         st.session_state.session_start = ""
 
 def do_login(user_id: str, user_name: str, test_round: str = "pre"):
-    """执行登录"""
     st.session_state.logged_in = True
     st.session_state.user_id = user_id
     st.session_state.user_name = user_name
@@ -153,7 +147,6 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     st.session_state.conversation_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     st.session_state.session_start = datetime.now().isoformat()
     
-    # 保存登录事件到 CloudBase
     save_to_cloudbase(
         student_id=user_id,
         student_name=user_name,
@@ -169,9 +162,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     })
 
 def do_logout():
-    """执行登出"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
-        # 保存到本地
         session_data = {
             "session_id": st.session_state.conversation_id,
             "start_time": st.session_state.session_start,
@@ -182,7 +173,6 @@ def do_logout():
         }
         save_conversation(st.session_state.user_id, session_data)
         
-        # 保存到 CloudBase
         save_to_cloudbase(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
@@ -192,7 +182,6 @@ def do_logout():
             test_round=st.session_state.test_round
         )
     
-    # 重置 session state
     st.session_state.logged_in = False
     st.session_state.user_id = None
     st.session_state.user_name = None
@@ -203,7 +192,6 @@ def do_logout():
     st.rerun()
 
 def save_current_session():
-    """手动保存当前会话"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         session_data = {
             "session_id": st.session_state.conversation_id,
@@ -460,7 +448,6 @@ def main_app():
             do_logout()
             st.rerun()
     
-    # ========== Chat Display ==========
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             with st.chat_message("user"):
@@ -469,7 +456,6 @@ def main_app():
             with st.chat_message("assistant"):
                 st.markdown(msg["content"])
 
-    # ========== AI Call ==========
     def call_deepseek(user_input: str) -> str:
         messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
         for msg in st.session_state.messages[-15:]:
@@ -497,7 +483,6 @@ def main_app():
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # 每次对话后自动保存到 CloudBase
             try:
                 save_to_cloudbase(
                     student_id=st.session_state.user_id,
@@ -518,7 +503,6 @@ def main_app():
             
             st.session_state.user_input = ""
 
-    # ========== Button Actions ==========
     def action_plan():
         st.session_state.user_input = "Let's start Step 1: Planning. Please help me create an outline for my English essay."
         handle_input()
@@ -564,7 +548,6 @@ Help me reflect:
         })
         st.rerun()
 
-    # ========== Main Buttons ==========
     st.markdown("### 🎨 The 3 Steps")
 
     col1, col2, col3 = st.columns(3)
@@ -606,7 +589,6 @@ Help me reflect:
         st.caption("🔒 Your garden, your data")
 
 # ========== Run ==========
-# 初始化所有 session state
 init_session_state()
 
 if st.session_state.logged_in:
