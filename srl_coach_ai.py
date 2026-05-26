@@ -500,6 +500,19 @@ def main_app():
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
+            # 🆕 每次对话后自动保存到 CloudBase
+            try:
+                save_to_cloudbase(
+                    student_id=st.session_state.user_id,
+                    student_name=st.session_state.user_name,
+                    plan_completed=st.session_state.plan_completed,
+                    monitoring_count=st.session_state.monitoring_count,
+                    conversation=st.session_state.messages,
+                    test_round=st.session_state.test_round
+                )
+            except Exception as e:
+                print(f"自动保存失败: {e}")
+            
             if "plan" in response.lower() and "outline" in response.lower():
                 if not st.session_state.plan_completed:
                     st.session_state.plan_completed = True
