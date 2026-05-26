@@ -4,7 +4,7 @@ from datetime import datetime
 import random
 import json
 import os
-import requests
+from tcb_admin_python import TCB
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = "sk-e2b1fab64b754d69b45ca099f9e49d10"
@@ -17,7 +17,15 @@ deepseek_client = OpenAI(
 # ========== 腾讯云开发配置 ==========
 # ！重要！请替换成你自己的值
 TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"  # 你的环境ID
-TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI2ZDAtNDQ4Yy1hNzZmLWUyY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNSIsImV4cCI6MjUzNDAyMzA3OTk5LCJpYXQiOjE3Nzk4MTg2NTAsImF0X2hhc2giOiJjdlpObkRPNFZqSExYNWY5NWZocnBRIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1IiwicGxhdGZvcm0iOiJBcGlLZXkiLCJhZG1pbl9pZF9hY2NvdW50IjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6ImFkbWluIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.pdiEwyBmiNpIf3yqg5RkklOL8I2SfaO1YhmRukn-B0wKvfbkR67IBbc6JSepsf9M4R4y-HTQRYVWNV8XAGCOzokLXL46tyWIBgJ3s3Sbnf5-vMsu5xN9gVEEE4HJERpXvVd5I02aLlBcbbG0iWqcFg0Nc6sDuQr9Orehg7VtWxMXUapfacApH9vqUvjeH8ICEBvP66hWdyV45qGAP4GSQvNLTUJeaj0I3gHEL1THH_rxQj4rHpsdI2_Qa0BXQnuk_4FeroXHanoHJBLO8dLdxnT1GmyRDyt_fB7UHZRd8pDRQOSWeYuhCMgpnbpdl_ANg5_R4xr9Fe75wm_Hg19mghw"
+TCB_SECRET_ID = "AKIDQilaCakhQvBD1cz82jGZfZEfuwmRv9Bx"  # 在 https://console.cloud.tencent.com/cam/capi 获取
+TCB_SECRET_KEY = "XopLhpiNm0yg7JG8pIYZLtMaZLr77rKW"  # 在 https://console.cloud.tencent.com/cam/capi 获取
+
+# 初始化 TCB
+tcb = TCB(
+    env=TCB_ENV_ID,
+    secret_id=TCB_SECRET_ID,
+    secret_key=TCB_SECRET_KEY
+)
 
 # ========== SRL System Prompt with Originality Check ==========
 SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated Learning (SRL) Theory.
@@ -98,9 +106,12 @@ def save_conversation(user_id: str, conversation_data: dict):
     return True
 
 def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count, conversation, test_round="pre"):
-    """保存数据到腾讯云开发数据库"""
+    """使用 SDK 保存数据到腾讯云开发数据库"""
     try:
-        data = {
+        db = tcb.database()
+        collection = db.collection("writing_sessions")
+        
+        result = collection.add({
             "student_id": student_id,
             "student_name": student_name,
             "test_round": test_round,
@@ -108,26 +119,12 @@ def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count
             "monitoring_count": monitoring_count,
             "conversation": conversation,
             "created_at": datetime.now().isoformat()
-        }
+        })
         
-        url = f"https://{TCB_ENV_ID}.ap-shanghai.tcb-api.tencentcloudapi.com/api/v1/database/collection/writing_sessions/document/add"
-        
-        headers = {
-            "Content-Type": "application/json",
-            "X-CloudBase-API-Key": TCB_API_KEY
-        }
-        
-        response = requests.post(url, headers=headers, json=data)
-        
-        if response.status_code == 200:
-            print(f"✅ CloudBase保存成功: {student_id}")
-            return True
-        else:
-            print(f"❌ CloudBase保存失败: {response.text}")
-            return False
-            
+        print(f"✅ CloudBase保存成功: {student_id}")
+        return True
     except Exception as e:
-        print(f"❌ CloudBase保存异常: {e}")
+        print(f"❌ CloudBase保存失败: {e}")
         return False
 
 # ========== Login/Session State ==========
@@ -500,7 +497,7 @@ def main_app():
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # 🆕 每次对话后自动保存到 CloudBase
+            # 每次对话后自动保存到 CloudBase
             try:
                 save_to_cloudbase(
                     student_id=st.session_state.user_id,
