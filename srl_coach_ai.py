@@ -16,7 +16,7 @@ deepseek_client = OpenAI(
 
 # ========== 腾讯云开发配置 ==========
 # ！重要！请替换成你自己的值
-TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"  # 你的环境ID
+TCB_ENV_ID = "srl-writing-coach-d5dvf4d5143ef8"  # 你的环境ID
 TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI2ZDAtNDQ4Yy1hNzZmLWUyY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNSIsImV4cCI6MjUzNDAyMzA3OTk5LCJpYXQiOjE3Nzk4MTg2NTAsImF0X2hhc2giOiJjdlpObkRPNFZqSExYNWY5NWZocnBRIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1IiwicGxhdGZvcm0iOiJBcGlLZXkiLCJhZG1pbl9pZF9hY2NvdW50IjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6ImFkbWluIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.pdiEwyBmiNpIf3yqg5RkklOL8I2SfaO1YhmRukn-B0wKvfbkR67IBbc6JSepsf9M4R4y-HTQRYVWNV8XAGCOzokLXL46tyWIBgJ3s3Sbnf5-vMsu5xN9gVEEE4HJERpXvVd5I02aLlBcbbG0iWqcFg0Nc6sDuQr9Orehg7VtWxMXUapfacApH9vqUvjeH8ICEBvP66hWdyV45qGAP4GSQvNLTUJeaj0I3gHEL1THH_rxQj4rHpsdI2_Qa0BXQnuk_4FeroXHanoHJBLO8dLdxnT1GmyRDyt_fB7UHZRd8pDRQOSWeYuhCMgpnbpdl_ANg5_R4xr9Fe75wm_Hg19mghw"
 
 # ========== SRL System Prompt ==========
