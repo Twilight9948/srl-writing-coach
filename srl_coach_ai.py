@@ -16,8 +16,8 @@ deepseek_client = OpenAI(
 
 # ========== 腾讯云开发配置 ==========
 # ！重要！请替换成你自己的值
-TCB_ENV_ID = "srl-writing-coach-d5dvf4d5143ef8"  # 你的环境ID
-TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNTE0M2VmOCIsImV4cCI6MjUzNDAyMzAwNzk5LCJpYXQiOjE3Nzk4MTg2NTAsImF0X2hhc2giOiJZdUJlc2FKNFMxLW9UcUY5NTN0WnlnIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1MTQzZWY4IiwibWV0YSI6eyJwbGF0Zm9ybSI6IkFwaUtleSJ9LCJhZG1pbmlzdHJhdG9yX2lkIjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3NlcnZlciIsImlzX3N5c3RlbV9hZG1pbiI6dHJ1ZX0.pdiEwyBmiNIpIf3yqg5RkklOL8l25aO1yMhruKn-bOWkVfbkR67IBBc6JSepsf9M4R4y-HTQRVYWNV8XAGCOzokLXI46tyWlBgJs3SBnf5-vMus5xN9gvEEE4HJERpXVvd5I02aLlBcbBGoiWqcFg0DNc6sDuQr9Orehg7VTvwMXUapfacAph9vqUvjeH8lCEBvP66wHdYV45GqPAG5QVnLTUJeajOl3gHEL1ThH_rxQij4rHPsdIZ_0AoBXQnuK_4FEroXHanoHJbL8OdLdxnT1GmyRDyt_fB7UHZrD8pDRQOSWeYuhCMgpnbpdLANg5_R4xr9Fe75wm_Hg19mghw"
+TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"  # 你的环境ID
+TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI2ZDAtNDQ4Yy1hNzZmLWUyY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNSIsImV4cCI6MjUzNDAyMzA3OTk5LCJpYXQiOjE3Nzk4MTg2NTAsImF0X2hhc2giOiJjdlpObkRPNFZqSExYNWY5NWZocnBRIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1IiwicGxhdGZvcm0iOiJBcGlLZXkiLCJhZG1pbl9pZF9hY2NvdW50IjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6ImFkbWluIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.pdiEwyBmiNpIf3yqg5RkklOL8I2SfaO1YhmRukn-B0wKvfbkR67IBbc6JSepsf9M4R4y-HTQRYVWNV8XAGCOzokLXL46tyWIBgJ3s3Sbnf5-vMsu5xN9gVEEE4HJERpXvVd5I02aLlBcbbG0iWqcFg0Nc6sDuQr9Orehg7VtWxMXUapfacApH9vqUvjeH8ICEBvP66hWdyV45qGAP4GSQvNLTUJeaj0I3gHEL1THH_rxQj4rHpsdI2_Qa0BXQnuk_4FeroXHanoHJBLO8dLdxnT1GmyRDyt_fB7UHZRd8pDRQOSWeYuhCMgpnbpdl_ANg5_R4xr9Fe75wm_Hg19mghw"
 
 # ========== SRL System Prompt ==========
 SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated Learning (SRL) Theory.
@@ -81,7 +81,6 @@ def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count
             "created_at": datetime.now().isoformat()
         }
         
-        # 使用云开发 HTTP API
         url = f"https://{TCB_ENV_ID}.ap-shanghai.tcb-api.tencentcloudapi.com/api/v1/database/collection/writing_sessions/document/add"
         
         headers = {
@@ -103,14 +102,21 @@ def save_to_cloudbase(student_id, student_name, plan_completed, monitoring_count
         return False
 
 # ========== Login/Session State ==========
-def init_login():
+def init_session_state():
+    """初始化所有 session state 变量"""
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.user_id = None
         st.session_state.user_name = None
         st.session_state.test_round = "pre"
+        st.session_state.messages = []
+        st.session_state.plan_completed = False
+        st.session_state.monitoring_count = 0
+        st.session_state.conversation_id = ""
+        st.session_state.session_start = ""
 
 def do_login(user_id: str, user_name: str, test_round: str = "pre"):
+    """执行登录"""
     st.session_state.logged_in = True
     st.session_state.user_id = user_id
     st.session_state.user_name = user_name
@@ -137,6 +143,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     })
 
 def do_logout():
+    """执行登出"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         # 保存到本地
         session_data = {
@@ -159,12 +166,18 @@ def do_logout():
             test_round=st.session_state.test_round
         )
     
+    # 重置 session state
     st.session_state.logged_in = False
     st.session_state.user_id = None
     st.session_state.user_name = None
+    st.session_state.test_round = "pre"
+    st.session_state.messages = []
+    st.session_state.plan_completed = False
+    st.session_state.monitoring_count = 0
     st.rerun()
 
 def save_current_session():
+    """手动保存当前会话"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         session_data = {
             "session_id": st.session_state.conversation_id,
@@ -328,7 +341,7 @@ def show_login_page():
     user_name = st.text_input("", placeholder="e.g., Zhang Wei", key="login_name", label_visibility="collapsed")
     
     st.markdown('<p style="font-size: 0.75rem; color: #5a6e5a; margin-bottom: 0.2rem; text-align: left;">Test Round</p>', unsafe_allow_html=True)
-    test_round = st.selectbox("", ["Pre-test", "Post-test"], key="test_round", label_visibility="collapsed")
+    test_round_option = st.selectbox("", ["Pre-test", "Post-test"], key="test_round_select", label_visibility="collapsed")
     
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn2:
@@ -336,7 +349,7 @@ def show_login_page():
     
     if login_clicked:
         if user_id and user_name:
-            round_value = "pre" if test_round == "Pre-test" else "post"
+            round_value = "pre" if test_round_option == "Pre-test" else "post"
             do_login(user_id.strip(), user_name.strip(), round_value)
             st.rerun()
         else:
@@ -554,7 +567,8 @@ Help me reflect:
         st.caption("🔒 Your garden, your data")
 
 # ========== Run ==========
-init_login()
+# 初始化所有 session state
+init_session_state()
 
 if st.session_state.logged_in:
     main_app()
