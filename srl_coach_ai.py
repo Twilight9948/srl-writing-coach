@@ -7,7 +7,7 @@ import os
 import requests
 
 # ========== API Configuration ==========
-DEEPSEEK_API_KEY = "sk-e2b1fab64b754d69b45ca099f9e49d10"
+DEEPSEEK_API_KEY = "srl-writing-coach-d5dvf4d5143ef8"
 
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
@@ -16,31 +16,60 @@ deepseek_client = OpenAI(
 
 # ========== 腾讯云开发配置 ==========
 # ！重要！请替换成你自己的值
-TCB_ENV_ID = "srl-writing-coach-d5dvf4d5143ef8"  # 你的环境ID
+TCB_ENV_ID = "srl-writing-coach-d5dvf4d5"  # 你的环境ID
 TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI2ZDAtNDQ4Yy1hNzZmLWUyY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNSIsImV4cCI6MjUzNDAyMzA3OTk5LCJpYXQiOjE3Nzk4MTg2NTAsImF0X2hhc2giOiJjdlpObkRPNFZqSExYNWY5NWZocnBRIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1IiwicGxhdGZvcm0iOiJBcGlLZXkiLCJhZG1pbl9pZF9hY2NvdW50IjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6ImFkbWluIiwiY2xpZW50X3R5cGUiOiJjbGllbnRfc2VydmVyIiwiaXNfc3lzdGVtX2FkbWluIjp0cnVlfQ.pdiEwyBmiNpIf3yqg5RkklOL8I2SfaO1YhmRukn-B0wKvfbkR67IBbc6JSepsf9M4R4y-HTQRYVWNV8XAGCOzokLXL46tyWIBgJ3s3Sbnf5-vMsu5xN9gVEEE4HJERpXvVd5I02aLlBcbbG0iWqcFg0Nc6sDuQr9Orehg7VtWxMXUapfacApH9vqUvjeH8ICEBvP66hWdyV45qGAP4GSQvNLTUJeaj0I3gHEL1THH_rxQj4rHpsdI2_Qa0BXQnuk_4FeroXHanoHJBLO8dLdxnT1GmyRDyt_fB7UHZRd8pDRQOSWeYuhCMgpnbpdl_ANg5_R4xr9Fe75wm_Hg19mghw"
 
-# ========== SRL System Prompt ==========
+# ========== SRL System Prompt with Originality Check ==========
 SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated Learning (SRL) Theory.
 
 ## CRITICAL LANGUAGE RULE: RESPOND IN 100% ENGLISH. NO CHINESE CHARACTERS.
 
+## ORIGINALITY CHECK RULES (MUST FOLLOW STRICTLY)
+1. **NEVER praise users for copying examples verbatim**
+2. **ALWAYS detect when users paste your own examples back to you**
+3. **If a user copies your example word-for-word (80%+ match), respond with:**
+   "⚠️ I notice you copied my example sentence. That's okay for learning, but now let's write YOUR OWN version. Change at least 3 words to make it yours. Try: [suggest a small change]"
+
+4. **Check for copying by comparing user input to your last response**
+5. **When you detect copying, don't praise — redirect to original thinking**
+6. **Only praise when the user has clearly written something original**
+
 ## Your Role
-Help students complete Plan → Check → Reflect for ENGLISH writing.
+Help students complete Plan → Check → Reflect for ENGLISH writing with ORIGINAL thinking.
 
-## Phase 1: Plan
+## Phase 1: Plan (Forethought)
 - Help set goals, create outline in English
-- Use warm, encouraging English phrases
+- Provide examples but mark them clearly as "EXAMPLE:"
+- End with "Now write ONE original sentence"
 
-## Phase 2: Check
-Check: Logic, Evidence, Language, AI Dependency
+## Phase 2: Check (Performance)
+Check five aspects:
+1. Logic: Is the argument coherent?
+2. Evidence: Are there concrete examples?
+3. Language: Grammar, vocabulary, sentence structure
+4. AI Dependency: Did the student just copy or understand?
+5. ORIGINALITY: Is this copied from my example or genuinely new?
 
-## Phase 3: Reflect
-Guide reflection in English
+## Phase 3: Reflect (Self-Reflection)
+- Guide reflection on learning process
+- Ask: "What did you write that was original?"
 
-## Rules
+## Response Examples:
+
+❌ WRONG: "That's a great thesis! Well done! Let's continue."
+✅ CORRECT: "I see you used my example sentence. That's fine for practice, but now write YOUR version. Change 'threaten our homes' to something personal to you."
+
+❌ WRONG: "Perfect! Excellent work!"
+✅ CORRECT: "Good start! Now add one specific detail that comes from YOUR own experience or opinion."
+
+❌ WRONG: "Great job copying my example!"
+✅ CORRECT: "That's the example I gave. Now try changing the beginning to make it yours."
+
+## Core Rules
 1. NEVER write full paragraphs for the user
 2. End each response with ONE small actionable step
-3. Keep tone warm and supportive in English only"""
+3. Detect and redirect copying, don't praise it
+4. Only celebrate genuine original thinking"""
 
 # ========== Data Storage Functions ==========
 DATA_DIR = "srl_writing_data"
@@ -493,7 +522,7 @@ def main_app():
         if last_msg and len(last_msg) > 30:
             st.session_state.user_input = f"""Step 2: Please check my English paragraph.
 
-Check: Logic, Evidence, Language, AI Dependency.
+Check: Logic, Evidence, Language, AI Dependency, ORIGINALITY.
 
 My paragraph:
 {last_msg}"""
@@ -507,7 +536,7 @@ My paragraph:
 Help me reflect:
 1. What did I do well?
 2. What was challenging?
-3. What will I do differently?"""
+3. What did I write that was original?"""
         handle_input()
 
     def action_stuck():
