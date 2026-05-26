@@ -23,7 +23,8 @@ TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY
 TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5"
 
 # CloudBase NoSQL HTTP API 端点（国内上海区）
-TCB_BASE_URL = f"https://{TCB_ENV_ID}.api.tcloudbasegateway.com/v1/database/instances/(default)/databases/(default)"
+# ✅ 使用截图中实际的数据库实例 ID tnt-9dj2bl3le
+TCB_BASE_URL = f"https://{TCB_ENV_ID}.api.tcloudbasegateway.com/v1/database/instances/tnt-9dj2bl3le/databases/(default)"
 
 # ========== 腾讯云 HTTP API 函数 ==========
 
