@@ -8,16 +8,23 @@ import requests
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
+KIMI_API_KEY = st.secrets["KIMI_API_KEY"]  # 需要在 secrets 中添加
 
+# DeepSeek 客户端
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
 )
 
+# Kimi 客户端
+kimi_client = OpenAI(
+    api_key=KIMI_API_KEY,
+    base_url="https://api.moonshot.cn/v1"
+)
+
 # ========== Supabase 配置 ==========
-# ！重要！替换成你的值
-SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
-SUPABASE_KEY = "sb_publishable_r0YyELsdDWsVh8IcA80Nlw_eHpBe1lY"
+SUPABASE_URL = "https://srl-writing-coach.supabase.co"
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
     """保存数据到 Supabase"""
@@ -30,7 +37,6 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             "Prefer": "return=minimal"
         }
         
-        # 只保留最近30条消息
         trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
         
         data = {
@@ -112,9 +118,7 @@ def save_current_session():
             "monitoring_count": st.session_state.monitoring_count,
             "messages": st.session_state.messages
         }
-        # 保存到本地
         save_conversation(st.session_state.user_id, session_data)
-        # 保存到 Supabase
         save_to_supabase(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
@@ -245,6 +249,7 @@ def init_session_state():
         st.session_state.monitoring_count = 0
         st.session_state.conversation_id = ""
         st.session_state.session_start = ""
+        st.session_state.selected_model = "deepseek"
 
 def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     st.session_state.logged_in = True
@@ -259,7 +264,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     
     st.session_state.messages.append({
         "role": "assistant",
-        "content": f"👋 **Welcome, {user_name}!**\n\nI understand that writing can sometimes feel difficult, tiring, or even stressful — and that's completely normal.\n\nMy role is not to write for you, but to help you **lower those barriers** and build confidence.\n\n**Tell me your English writing topic, and we'll start with a small first step.**\n\n💡 *If you feel stuck, just say \"I'm stuck\" or click the 💪 button below.*\n\n---\n🎨 *Let's write together, like painting with words — one brushstroke at a time.*"
+        "content": f"👋 **Welcome, {user_name}!**\n\nI understand that writing can sometimes feel difficult, tiring, or even stressful — and that's completely normal.\n\nMy role is not to write for you, but to help you **lower those barriers** and build confidence.\n\n**Tell me your English writing topic, and we'll start with a small first step.**\n\n💡 *If you feel stuck, just say \"I'm stuck\" or click the button below.*\n\n---\n🎨 *Let's write together, like painting with words — one brushstroke at a time.*"
     })
 
 def do_logout():
@@ -326,8 +331,53 @@ def show_login_page():
     st.caption("💡 Your writing data is saved automatically.")
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ========== AI Call Functions ==========
+def call_deepseek(user_input: str) -> str:
+    """调用 DeepSeek API"""
+    messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
+    for msg in st.session_state.messages[-15:]:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": user_input})
+    
+    try:
+        response = deepseek_client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ DeepSeek Error: {str(e)}"
+
+def call_kimi(user_input: str) -> str:
+    """调用 Kimi API"""
+    messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
+    for msg in st.session_state.messages[-15:]:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": user_input})
+    
+    try:
+        response = kimi_client.chat.completions.create(
+            model="moonshot-v1-8k",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"❌ Kimi Error: {str(e)}"
+
+def call_ai(user_input: str) -> str:
+    """根据选择的模型调用不同的API"""
+    if st.session_state.selected_model == "kimi":
+        return call_kimi(user_input)
+    else:
+        return call_deepseek(user_input)
+
 # ========== Main App ==========
 def main_app():
+    # 标题行
     st.markdown(f"""
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
         <div>
@@ -344,6 +394,7 @@ def main_app():
     
     st.divider()
     
+    # ========== Sidebar ==========
     with st.sidebar:
         st.markdown("""
         <div style="background: rgba(255,248,235,0.25); backdrop-filter: blur(8px); border-radius: 28px; padding: 18px; text-align: center; margin-bottom: 20px;">
@@ -352,6 +403,15 @@ def main_app():
             <span style="font-size: 0.75rem;">Your Writing Studio</span>
         </div>
         """, unsafe_allow_html=True)
+        
+        # 模型选择
+        st.markdown("### 🤖 AI Model")
+        selected_model = st.selectbox(
+            "Choose your AI coach",
+            options=["deepseek", "kimi"],
+            format_func=lambda x: "🐋 DeepSeek" if x == "deepseek" else "🌟 Kimi"
+        )
+        st.session_state.selected_model = selected_model
         
         st.caption(f"👤 {st.session_state.user_name}")
         st.caption(f"📧 {st.session_state.user_id}")
@@ -402,6 +462,7 @@ def main_app():
             do_logout()
             st.rerun()
     
+    # ========== Chat Display ==========
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             with st.chat_message("user"):
@@ -410,34 +471,17 @@ def main_app():
             with st.chat_message("assistant"):
                 st.markdown(msg["content"])
 
-    def call_deepseek(user_input: str) -> str:
-        messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
-        for msg in st.session_state.messages[-15:]:
-            messages.append({"role": msg["role"], "content": msg["content"]})
-        messages.append({"role": "user", "content": user_input})
-        
-        try:
-            response = deepseek_client.chat.completions.create(
-                model="deepseek-chat",
-                messages=messages,
-                temperature=0.7,
-                max_tokens=1500
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"❌ Error: {str(e)}"
-
     def handle_input():
         user_input = st.session_state.user_input
         if user_input and user_input.strip():
             st.session_state.messages.append({"role": "user", "content": user_input})
             
-            with st.spinner("🎨 Painting a response..."):
-                response = call_deepseek(user_input)
+            model_name = "Kimi" if st.session_state.selected_model == "kimi" else "DeepSeek"
+            with st.spinner(f"🎨 {model_name} is thinking..."):
+                response = call_ai(user_input)
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # 每次对话后自动保存
             try:
                 save_current_session()
             except Exception as e:
@@ -496,6 +540,7 @@ Help me reflect:
         })
         st.rerun()
 
+    # ========== Main Buttons ==========
     st.markdown("### 🎨 The 3 Steps")
 
     col1, col2, col3 = st.columns(3)
@@ -530,7 +575,7 @@ Help me reflect:
     st.divider()
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.caption("⚡ Powered by DeepSeek")
+        st.caption("⚡ Powered by DeepSeek & Kimi")
     with c2:
         st.caption("🎓 SRL Self-Regulated Learning")
     with c3:
