@@ -5,6 +5,7 @@ import random
 import json
 import os
 from pymongo import MongoClient
+import traceback
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
@@ -20,9 +21,17 @@ MONGO_DB = "srl_writing"
 MONGO_COLLECTION = "sessions"
 
 def save_to_mongodb(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
-    """保存数据到 MongoDB Atlas"""
+    """保存数据到 MongoDB Atlas，带详细日志"""
     try:
-        client = MongoClient(MONGO_URI)
+        print(f"🔵 [MongoDB] 尝试连接 {MONGO_DB}.{MONGO_COLLECTION}...")
+        
+        # 设置超时时间 5 秒
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        
+        # 测试连接
+        client.admin.command('ping')
+        print(f"🔵 [MongoDB] 连接成功！")
+        
         db = client[MONGO_DB]
         collection = db[MONGO_COLLECTION]
         
@@ -38,12 +47,16 @@ def save_to_mongodb(student_id, student_name, test_round, plan_completed, monito
             "conversation": trimmed_conversation,
             "created_at": datetime.now().isoformat()
         }
-        collection.insert_one(doc)
+        
+        result = collection.insert_one(doc)
         client.close()
-        print(f"✅ MongoDB 保存成功: {student_id}")
+        
+        print(f"✅ [MongoDB] 保存成功: {student_id}, 文档ID: {result.inserted_id}")
         return True
+        
     except Exception as e:
-        print(f"❌ MongoDB 保存失败: {e}")
+        print(f"❌ [MongoDB] 保存失败: {type(e).__name__}: {str(e)}")
+        traceback.print_exc()
         return False
 
 # ========== SRL System Prompt ==========
@@ -104,8 +117,11 @@ def save_current_session():
         }
         # 保存到本地
         save_conversation(st.session_state.user_id, session_data)
+        print(f"📁 本地保存完成: {st.session_state.user_id}")
+        
         # 保存到 MongoDB
-        save_to_mongodb(
+        print(f"🔄 开始保存到 MongoDB...")
+        success = save_to_mongodb(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
             test_round=st.session_state.test_round,
@@ -113,6 +129,11 @@ def save_current_session():
             monitoring_count=st.session_state.monitoring_count,
             conversation=st.session_state.messages
         )
+        if success:
+            print(f"✅ 云端保存完成")
+        else:
+            print(f"⚠️ 云端保存失败，数据已保存在本地")
+        
         return True
     return False
 
@@ -431,7 +452,7 @@ def main_app():
             try:
                 save_current_session()
             except Exception as e:
-                print(f"自动保存失败: {e}")
+                print(f"⚠️ 自动保存失败: {e}")
             
             if "plan" in response.lower() and "outline" in response.lower():
                 if not st.session_state.plan_completed:
