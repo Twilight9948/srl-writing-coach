@@ -28,9 +28,9 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
     """保存数据到 Supabase（upsert：有则更新，无则插入）"""
+    print(f"🔵 [Supabase] 开始保存: {student_id} - {test_round}")
+    
     try:
-        print(f"🔵 [Supabase] 开始保存: {student_id} - {test_round}")
-        
         url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
         headers = {
             "apikey": SUPABASE_KEY,
@@ -42,6 +42,7 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
         # 先检查是否已有该学生的记录
         check_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?student_id=eq.{student_id}&test_round=eq.{test_round}&select=id"
         check_response = requests.get(check_url, headers=headers)
+        print(f"🔵 [Supabase] 检查已有记录: {check_response.status_code}")
         
         trimmed_conversation = conversation[-50:] if len(conversation) > 50 else conversation
         
@@ -60,11 +61,11 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             record_id = check_response.json()[0]["id"]
             update_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?id=eq.{record_id}"
             response = requests.patch(update_url, headers=headers, json=data)
-            print(f"🔄 [Supabase] 更新已有记录: {student_id}")
+            print(f"🔄 [Supabase] 更新已有记录: {student_id}, 状态码: {response.status_code}")
         else:
             data["created_at"] = datetime.now().isoformat()
             response = requests.post(url, headers=headers, json=data)
-            print(f"📝 [Supabase] 插入新记录: {student_id}")
+            print(f"📝 [Supabase] 插入新记录: {student_id}, 状态码: {response.status_code}")
         
         if response.status_code in (200, 201, 204):
             print(f"✅ [Supabase] 保存成功: {student_id}")
@@ -102,12 +103,6 @@ You are a QUESTION-ASKER, not a CONTENT-GENERATOR.
 - Then: Ask ONE specific question
 - Then: Say "Now try writing one sentence."
 
-## Example of CORRECT response:
-"Good start. What is your main argument? Now try writing one sentence."
-
-## Example of WRONG response (DO NOT DO THIS):
-"Great! Here is an example thesis: 'Because...'"
-
 Remember: Ask questions, don't give answers."""
 
 # ========== Data Storage Functions ==========
@@ -138,8 +133,12 @@ def save_conversation(user_id: str, conversation_data: dict):
 
 def save_current_session():
     """保存当前会话到本地和 Supabase"""
+    print("🔵 [DEBUG] save_current_session 被调用了")
+    print(f"🔵 [DEBUG] logged_in: {st.session_state.logged_in}")
+    print(f"🔵 [DEBUG] messages length: {len(st.session_state.messages)}")
+    
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
-        print(f"💾 [保存] 保存当前会话: {st.session_state.user_id}")
+        print("🔵 [DEBUG] 条件满足，开始保存...")
         session_data = {
             "session_id": st.session_state.conversation_id,
             "start_time": st.session_state.session_start,
@@ -149,6 +148,8 @@ def save_current_session():
             "messages": st.session_state.messages
         }
         save_conversation(st.session_state.user_id, session_data)
+        print("🔵 [DEBUG] 本地保存完成")
+        
         save_to_supabase(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
@@ -158,7 +159,9 @@ def save_current_session():
             conversation=st.session_state.messages
         )
         return True
-    return False
+    else:
+        print("🔵 [DEBUG] 条件不满足，跳过保存")
+        return False
 
 # ========== CSS ==========
 st.markdown("""
@@ -299,6 +302,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     })
 
 def do_logout():
+    print("🔵 [DEBUG] do_logout 被调用")
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         save_current_session()
     
@@ -364,7 +368,6 @@ def show_login_page():
 
 # ========== AI Call Functions ==========
 def call_deepseek(user_input: str) -> str:
-    """调用 DeepSeek API"""
     messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
     for msg in st.session_state.messages[-15:]:
         messages.append({"role": msg["role"], "content": msg["content"]})
@@ -382,7 +385,6 @@ def call_deepseek(user_input: str) -> str:
         return f"❌ DeepSeek Error: {str(e)}"
 
 def call_kimi(user_input: str) -> str:
-    """调用 Kimi API"""
     messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
     for msg in st.session_state.messages[-10:]:
         messages.append({"role": msg["role"], "content": msg["content"]})
@@ -401,7 +403,6 @@ def call_kimi(user_input: str) -> str:
         return f"❌ Kimi Error: {str(e)}"
 
 def call_ai(user_input: str) -> str:
-    """根据选择的模型调用不同的API"""
     if st.session_state.selected_model == "kimi":
         return call_kimi(user_input)
     else:
@@ -409,7 +410,6 @@ def call_ai(user_input: str) -> str:
 
 # ========== Main App ==========
 def main_app():
-    # 标题行
     st.markdown(f"""
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
         <div>
@@ -426,7 +426,6 @@ def main_app():
     
     st.divider()
     
-    # ========== Sidebar ==========
     with st.sidebar:
         st.markdown("""
         <div style="background: rgba(255,248,235,0.25); backdrop-filter: blur(8px); border-radius: 28px; padding: 18px; text-align: center; margin-bottom: 20px;">
@@ -436,7 +435,6 @@ def main_app():
         </div>
         """, unsafe_allow_html=True)
         
-        # 模型选择
         st.markdown("### 🤖 AI Model")
         selected_model = st.selectbox(
             "Choose your AI coach",
@@ -472,29 +470,23 @@ def main_app():
             st.caption("🔒 **Reflect** — Complete Plan & Check")
         
         st.divider()
-        
         st.metric("🔄 Revisions", st.session_state.monitoring_count)
         st.caption(f"📅 Session: {st.session_state.conversation_id[-8:]}")
-        
         st.divider()
         
         notes = [
             "🌻 Write like planting seeds — one sentence at a time.",
             "🎨 Every great painting starts with a single brushstroke.",
             "📝 Revision is where writing blooms.",
-            "🌸 Patience grows beautiful gardens and good writing.",
-            "💡 Hemingway wrote 500 words a day.",
-            "🖌️ Monet painted water lilies again and again."
+            "🌸 Patience grows beautiful gardens and good writing."
         ]
         st.info(f"✨ {random.choice(notes)}")
-        
         st.divider()
         
         if st.button("🚪 Sign Out", use_container_width=True):
             do_logout()
             st.rerun()
     
-    # ========== Chat Display ==========
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             with st.chat_message("user"):
@@ -506,6 +498,7 @@ def main_app():
     def handle_input():
         user_input = st.session_state.user_input
         if user_input and user_input.strip():
+            print(f"🔵 [DEBUG] handle_input 收到消息: {user_input[:50]}...")
             st.session_state.messages.append({"role": "user", "content": user_input})
             
             model_name = "Kimi" if st.session_state.selected_model == "kimi" else "DeepSeek"
@@ -514,13 +507,10 @@ def main_app():
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # ✅ 每次对话后自动保存（使用 upsert，同一学生同一轮次只更新不新增）
-            try:
-                save_current_session()
-            except Exception as e:
-                print(f"⚠️ 自动保存失败: {e}")
+            # 每次对话后自动保存
+            print("🔵 [DEBUG] 准备调用 save_current_session...")
+            save_current_session()
             
-            # 标记 plan 完成
             if st.session_state.get("plan_in_progress") and not st.session_state.plan_completed:
                 st.session_state.plan_completed = True
                 st.session_state.plan_in_progress = False
@@ -582,17 +572,12 @@ Help me reflect:
         })
         st.rerun()
 
-    # ========== Main Buttons ==========
     st.markdown("### 🎨 The 3 Steps")
-
     col1, col2, col3 = st.columns(3)
-
     with col1:
         st.button("📋 **PLAN**\n\n🌱 Set goals & outline", use_container_width=True, on_click=action_plan)
-
     with col2:
         st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check)
-
     with col3:
         st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect)
 
@@ -609,9 +594,7 @@ Help me reflect:
                 st.toast("Nothing to save yet.", icon="💡")
 
     st.caption("💡 **Flow:** Plan → Write → Check → Reflect — layer by layer, like a painting.")
-
     st.divider()
-
     st.chat_input("📝 Type your English writing here...", key="user_input", on_submit=handle_input)
 
     st.divider()
