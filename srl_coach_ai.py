@@ -250,6 +250,7 @@ def init_session_state():
         st.session_state.conversation_id = ""
         st.session_state.session_start = ""
         st.session_state.selected_model = "deepseek"
+        st.session_state.plan_in_progress = False
 
 def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     st.session_state.logged_in = True
@@ -481,25 +482,32 @@ def main_app():
                 response = call_ai(user_input)
             
             st.session_state.messages.append({"role": "assistant", "content": response})
-            
+
             try:
                 save_current_session()
             except Exception as e:
                 print(f"⚠️ 自动保存失败: {e}")
-            
-            if "plan" in response.lower() and "outline" in response.lower():
-                if not st.session_state.plan_completed:
-                    st.session_state.plan_completed = True
+
+            # ✅ 只有在学生主动点了 PLAN 按钮之后，AI 回复才标记 plan 完成
+            if st.session_state.get("plan_in_progress") and not st.session_state.plan_completed:
+                st.session_state.plan_completed = True
+                st.session_state.plan_in_progress = False
+
             if "check" in response.lower() or "logic" in response.lower():
                 st.session_state.monitoring_count += 1
-            
+
             st.session_state.user_input = ""
 
     def action_plan():
+        st.session_state.plan_in_progress = True
         st.session_state.user_input = "Let's start Step 1: Planning. Please help me create an outline for my English essay."
         handle_input()
 
     def action_check():
+        if not st.session_state.plan_completed:
+            st.session_state.user_input = "I haven't finished Step 1 (Planning) yet. Please remind me to complete the plan first before checking."
+            handle_input()
+            return
         last_msg = ""
         for msg in reversed(st.session_state.messages):
             if msg["role"] == "user":
@@ -517,6 +525,10 @@ My paragraph:
         handle_input()
 
     def action_reflect():
+        if not st.session_state.plan_completed:
+            st.session_state.user_input = "I haven't finished Step 1 (Planning) yet. Please remind me to complete the plan first."
+            handle_input()
+            return
         st.session_state.user_input = """Step 3: Self-Reflection.
 
 Help me reflect:
@@ -549,10 +561,12 @@ Help me reflect:
         st.button("📋 **PLAN**\n\n🌱 Set goals & outline", use_container_width=True, on_click=action_plan)
 
     with col2:
-        st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check)
+        st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check,
+                  disabled=not st.session_state.plan_completed)
 
     with col3:
-        st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect)
+        st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect,
+                  disabled=not st.session_state.plan_completed)
 
     col_s1, col_s2, col_s3, col_s4 = st.columns([1, 1, 2, 0.8])
     with col_s1:
