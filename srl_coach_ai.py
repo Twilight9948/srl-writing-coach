@@ -16,62 +16,50 @@ deepseek_client = OpenAI(
 )
 
 # ========== 腾讯云开发配置 ==========
-# ✅ 从 Streamlit Secrets 读取，key 不出现在代码里
+# ✅ 从 Streamlit Secrets 读取
 TCB_API_KEY = st.secrets["TCB_API_KEY"]
 TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5143ef8"
 
-# CloudBase NoSQL HTTP API 端点（国内上海区）
-# ✅ 使用截图中实际的数据库实例 ID tnt-9dj2bl3le
-TCB_BASE_URL = f"https://{TCB_ENV_ID}.api.tcloudbasegateway.com/v1/database/instances/(default)/databases/(default)"
+# ✅ 官方 Open API 正确端点
+TCB_BASE_URL = f"https://tcb-api.tencentcloudapi.com/api/v2/envs/{TCB_ENV_ID}/databases/writing_sessions/documents"
 
 # ========== 腾讯云 HTTP API 函数 ==========
 
 def _tcb_headers() -> dict:
-    """返回带鉴权的请求头"""
+    """返回带鉴权的请求头（官方 Open API 格式）"""
     return {
-        "Authorization": f"Bearer {TCB_API_KEY}",
+        "X-CloudBase-Authorization": TCB_API_KEY,
         "Content-Type": "application/json",
-        "X-TCB-ENV": TCB_ENV_ID,
     }
 
 def save_to_cloudbase(student_id, student_name, plan_completed,
                       monitoring_count, conversation, test_round="pre") -> bool:
     """
-    用 CloudBase NoSQL RESTful HTTP API 向 writing_sessions 集合插入一条记录。
-    文档：https://docs.cloudbase.net/en/http-api/nosql/nosql-restful-api
+    用腾讯云 CloudBase Open API 向 writing_sessions 集合插入一条记录。
+    文档：https://docs.cloudbase.net/api-reference/openapi/database
     """
-    # 如果还没有填写 API Key，静默跳过（不影响本地存储）
     if TCB_API_KEY == "YOUR_API_KEY_HERE":
-        print("⚠️  TCB_API_KEY 尚未配置，跳过云端保存")
         return False
 
-    url = f"{TCB_BASE_URL}/collections/writing_sessions/documents"
-
-    # conversation 列表可能很大，只保存最近 30 条消息以免超限
     trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
 
-    payload = {
-        "data": {
-            "student_id":       student_id,
-            "student_name":     student_name,
-            "test_round":       test_round,
-            "plan_completed":   plan_completed,
-            "monitoring_count": monitoring_count,
-            "conversation":     trimmed_conversation,
-            "created_at":       datetime.now().isoformat(),
-        }
+    doc = {
+        "student_id":       student_id,
+        "student_name":     student_name,
+        "test_round":       test_round,
+        "plan_completed":   plan_completed,
+        "monitoring_count": monitoring_count,
+        "conversation":     trimmed_conversation,
+        "created_at":       datetime.now().isoformat(),
     }
 
+    # Open API 要求 data 是 JSON 字符串
+    payload = {"data": json.dumps(doc, ensure_ascii=False)}
+
     try:
-        resp = requests.post(url, headers=_tcb_headers(), json=payload, timeout=10)
-        if resp.status_code in (200, 201):
-            print(f"✅ CloudBase 保存成功: {student_id}")
-            return True
-        else:
-            print(f"❌ CloudBase 保存失败 [{resp.status_code}]: {resp.text}")
-            return False
-    except requests.exceptions.RequestException as e:
-        print(f"❌ CloudBase 网络错误: {e}")
+        resp = requests.post(TCB_BASE_URL, headers=_tcb_headers(), json=payload, timeout=10)
+        return resp.status_code in (200, 201)
+    except requests.exceptions.RequestException:
         return False
 
 
@@ -474,15 +462,13 @@ def main_app():
         st.caption("🔧 Debug")
         if st.button("🧪 Test CloudBase", use_container_width=True):
             import requests as _req
-            _url = f"{TCB_BASE_URL}/collections/writing_sessions/documents"
             _headers = {
-                "Authorization": f"Bearer {TCB_API_KEY}",
+                "X-CloudBase-Authorization": TCB_API_KEY,
                 "Content-Type": "application/json",
-                "X-TCB-ENV": TCB_ENV_ID,
             }
-            _payload = {"data": {"test": True, "ts": datetime.now().isoformat()}}
+            _payload = {"data": json.dumps({"test": True, "ts": datetime.now().isoformat()})}
             try:
-                _r = _req.post(_url, headers=_headers, json=_payload, timeout=10)
+                _r = _req.post(TCB_BASE_URL, headers=_headers, json=_payload, timeout=10)
                 st.write(f"**Status:** {_r.status_code}")
                 st.write(f"**Response:** {_r.text[:500]}")
             except Exception as _e:
