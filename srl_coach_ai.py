@@ -470,6 +470,24 @@ def main_app():
             do_logout()
             st.rerun()
 
+        st.divider()
+        st.caption("🔧 Debug")
+        if st.button("🧪 Test CloudBase", use_container_width=True):
+            import requests as _req
+            _url = f"{TCB_BASE_URL}/collections/writing_sessions/documents"
+            _headers = {
+                "Authorization": f"Bearer {TCB_API_KEY}",
+                "Content-Type": "application/json",
+                "X-TCB-ENV": TCB_ENV_ID,
+            }
+            _payload = {"document": {"test": True, "ts": datetime.now().isoformat()}}
+            try:
+                _r = _req.post(_url, headers=_headers, json=_payload, timeout=10)
+                st.write(f"**Status:** {_r.status_code}")
+                st.write(f"**Response:** {_r.text[:500]}")
+            except Exception as _e:
+                st.error(f"Network error: {_e}")
+
     for msg in st.session_state.messages:
         if msg["role"] == "user":
             with st.chat_message("user"):
