@@ -18,7 +18,7 @@ deepseek_client = OpenAI(
 # ========== 腾讯云开发配置 ==========
 # ✅ 从 Streamlit Secrets 读取，key 不出现在代码里
 TCB_API_KEY = st.secrets["TCB_API_KEY"]
-TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5"
+TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5143ef8"
 
 # CloudBase NoSQL HTTP API 端点（国内上海区）
 # ✅ 使用截图中实际的数据库实例 ID tnt-9dj2bl3le
@@ -469,24 +469,6 @@ def main_app():
         if st.button("🚪 Sign Out", use_container_width=True):
             do_logout()
             st.rerun()
-
-        st.divider()
-        st.caption("🔧 Debug")
-        if st.button("🧪 Test CloudBase", use_container_width=True):
-            import requests as _req
-            _url = f"{TCB_BASE_URL}/collections/writing_sessions/documents"
-            _headers = {
-                "Authorization": f"Bearer {TCB_API_KEY}",
-                "Content-Type": "application/json",
-                "X-TCB-ENV": TCB_ENV_ID,
-            }
-            _payload = {"document": {"test": True, "ts": datetime.now().isoformat()}}
-            try:
-                _r = _req.post(_url, headers=_headers, json=_payload, timeout=10)
-                st.write(f"**Status:** {_r.status_code}")
-                st.write(f"**Response:** {_r.text[:500]}")
-            except Exception as _e:
-                st.error(f"Network error: {_e}")
 
     for msg in st.session_state.messages:
         if msg["role"] == "user":
