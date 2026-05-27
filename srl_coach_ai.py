@@ -16,50 +16,88 @@ deepseek_client = OpenAI(
 )
 
 # ========== 腾讯云开发配置 ==========
-# ✅ 从 Streamlit Secrets 读取
-TCB_API_KEY = st.secrets["TCB_API_KEY"]
-TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5143ef8"
+TCB_SECRET_ID  = st.secrets["TCB_SECRET_ID"]
+TCB_SECRET_KEY = st.secrets["TCB_SECRET_KEY"]
+TCB_ENV_ID     = "srl-writing-coach-d5dvf4d5143ef8"
 
-# ✅ 官方 Open API 正确端点
-TCB_BASE_URL = f"https://tcb-api.tencentcloudapi.com/api/v2/envs/{TCB_ENV_ID}/databases/writing_sessions/documents"
+# ========== 腾讯云 Cloud API v3 签名 ==========
+import hmac as _hmac_mod
+import hashlib as _hashlib_mod
+import time as _time_mod
 
-# ========== 腾讯云 HTTP API 函数 ==========
+def _make_tcb_headers(payload_str: str) -> dict:
+    """生成腾讯云 API 3.0 签名请求头"""
+    service   = "tcb"
+    host      = "tcb.tencentcloudapi.com"
+    action    = "DatabaseAdd"
+    version   = "2018-06-08"
+    algorithm = "TC3-HMAC-SHA256"
+    timestamp = int(_time_mod.time())
+    date      = _time_mod.strftime("%Y-%m-%d", _time_mod.gmtime(timestamp))
 
-def _tcb_headers() -> dict:
-    """返回带鉴权的请求头（官方 Open API 格式）"""
+    canonical_headers = f"content-type:application/json\nhost:{host}\nx-tc-action:{action.lower()}\n"
+    signed_headers    = "content-type;host;x-tc-action"
+    hashed_payload    = _hashlib_mod.sha256(payload_str.encode("utf-8")).hexdigest()
+    canonical_request = "\n".join([
+        "POST", "/", "",
+        canonical_headers, signed_headers, hashed_payload
+    ])
+
+    credential_scope = f"{date}/{service}/tc3_request"
+    hashed_cr = _hashlib_mod.sha256(canonical_request.encode("utf-8")).hexdigest()
+    string_to_sign = "\n".join([algorithm, str(timestamp), credential_scope, hashed_cr])
+
+    def _hmac(key, msg):
+        return _hmac_mod.new(key, msg.encode("utf-8"), _hashlib_mod.sha256).digest()
+
+    secret_date    = _hmac(("TC3" + TCB_SECRET_KEY).encode("utf-8"), date)
+    secret_service = _hmac(secret_date, service)
+    secret_signing = _hmac(secret_service, "tc3_request")
+    signature = _hmac_mod.new(secret_signing, string_to_sign.encode("utf-8"), _hashlib_mod.sha256).hexdigest()
+
+    authorization = (
+        f"{algorithm} Credential={TCB_SECRET_ID}/{credential_scope}, "
+        f"SignedHeaders={signed_headers}, Signature={signature}"
+    )
     return {
-        "X-CloudBase-Authorization": TCB_API_KEY,
-        "Content-Type": "application/json",
+        "Authorization":  authorization,
+        "Content-Type":   "application/json",
+        "Host":           host,
+        "X-TC-Action":    action,
+        "X-TC-Version":   version,
+        "X-TC-Timestamp": str(timestamp),
+        "X-TC-Region":    "",
     }
 
 def save_to_cloudbase(student_id, student_name, plan_completed,
                       monitoring_count, conversation, test_round="pre") -> bool:
-    """
-    用腾讯云 CloudBase Open API 向 writing_sessions 集合插入一条记录。
-    文档：https://docs.cloudbase.net/api-reference/openapi/database
-    """
-    if TCB_API_KEY == "YOUR_API_KEY_HERE":
-        return False
-
-    trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
-
+    """用腾讯云 Cloud API DatabaseAdd 写入 writing_sessions 集合"""
+    trimmed = conversation[-30:] if len(conversation) > 30 else conversation
     doc = {
         "student_id":       student_id,
         "student_name":     student_name,
         "test_round":       test_round,
         "plan_completed":   plan_completed,
         "monitoring_count": monitoring_count,
-        "conversation":     trimmed_conversation,
+        "conversation":     trimmed,
         "created_at":       datetime.now().isoformat(),
     }
-
-    # Open API 要求 data 是 JSON 字符串
-    payload = {"data": json.dumps(doc, ensure_ascii=False)}
-
+    payload = {
+        "EnvId":          TCB_ENV_ID,
+        "CollectionName": "writing_sessions",
+        "Data":           json.dumps(doc, ensure_ascii=False),
+    }
+    payload_str = json.dumps(payload, separators=(",", ":"))
     try:
-        resp = requests.post(TCB_BASE_URL, headers=_tcb_headers(), json=payload, timeout=10)
-        return resp.status_code in (200, 201)
-    except requests.exceptions.RequestException:
+        resp = requests.post(
+            "https://tcb.tencentcloudapi.com",
+            headers=_make_tcb_headers(payload_str),
+            data=payload_str.encode("utf-8"),
+            timeout=10
+        )
+        body = resp.json()
+        return "Response" in body and "Error" not in body["Response"]
+    except Exception:
         return False
 
 
@@ -461,18 +499,24 @@ def main_app():
         st.divider()
         st.caption("🔧 Debug")
         if st.button("🧪 Test CloudBase", use_container_width=True):
-            import requests as _req
-            _headers = {
-                "X-CloudBase-Authorization": TCB_API_KEY,
-                "Content-Type": "application/json",
+            test_doc = {"test": True, "ts": datetime.now().isoformat()}
+            test_payload = {
+                "EnvId": TCB_ENV_ID,
+                "CollectionName": "writing_sessions",
+                "Data": json.dumps(test_doc),
             }
-            _payload = {"data": json.dumps({"test": True, "ts": datetime.now().isoformat()})}
+            test_str = json.dumps(test_payload, separators=(",", ":"))
             try:
-                _r = _req.post(TCB_BASE_URL, headers=_headers, json=_payload, timeout=10)
+                _r = requests.post(
+                    "https://tcb.tencentcloudapi.com",
+                    headers=_make_tcb_headers(test_str),
+                    data=test_str.encode("utf-8"),
+                    timeout=10
+                )
                 st.write(f"**Status:** {_r.status_code}")
-                st.write(f"**Response:** {_r.text[:500]}")
+                st.write(f"**Response:** {_r.text[:600]}")
             except Exception as _e:
-                st.error(f"Network error: {_e}")
+                st.error(f"Error: {_e}")
 
     for msg in st.session_state.messages:
         if msg["role"] == "user":
