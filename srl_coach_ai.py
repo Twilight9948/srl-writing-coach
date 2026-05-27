@@ -51,7 +51,7 @@ def save_to_cloudbase(student_id, student_name, plan_completed,
     trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
 
     payload = {
-        "document": {
+        "data": {
             "student_id":       student_id,
             "student_name":     student_name,
             "test_round":       test_round,
@@ -480,7 +480,7 @@ def main_app():
                 "Content-Type": "application/json",
                 "X-TCB-ENV": TCB_ENV_ID,
             }
-            _payload = {"document": {"test": True, "ts": datetime.now().isoformat()}}
+            _payload = {"data": {"test": True, "ts": datetime.now().isoformat()}}
             try:
                 _r = _req.post(_url, headers=_headers, json=_payload, timeout=10)
                 st.write(f"**Status:** {_r.status_code}")
