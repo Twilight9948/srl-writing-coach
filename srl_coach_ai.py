@@ -7,7 +7,8 @@ import os
 import requests  # ✅ 替换掉有问题的 cloudbase_manager
 
 # ========== API Configuration ==========
-DEEPSEEK_API_KEY = "sk-e2b1fab64b754d69b45ca099f9e49d10"
+# ✅ 从 Streamlit Secrets 读取，key 不出现在代码里
+DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
 
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
@@ -15,11 +16,8 @@ deepseek_client = OpenAI(
 )
 
 # ========== 腾讯云开发配置 ==========
-# ⚠️  TCB_SECRET_ID / TCB_SECRET_KEY 已不再使用（原 SDK 方式）
-# ✅  改用 API Key 鉴权：
-#     请前往 https://tcb.cloud.tencent.com/dev#/env/apikey
-#     生成一个 API Key，粘贴到下方 TCB_API_KEY
-TCB_API_KEY = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjlkMWRjMzFlLWI0ZDAtNDQ4Yi1hNzZmLWIwY2M2M2Q4MTQ5OCJ9.eyJhdWQiOiJzcmwtd3JpdGluZy1jb2FjaC1kNWR2ZjRkNTE0M2VmOCIsImV4cCI6MjUzNDAyMzAwNzk5LCJpYXQiOjE3Nzk4MjE0MDYsImF0X2hhc2giOiJZWFgzTDh1eFFoLUMxVElHZnhoSnFRIiwicHJvamVjdF9pZCI6InNybC13cml0aW5nLWNvYWNoLWQ1ZHZmNGQ1MTQzZWY4IiwibWV0YSI6eyJwbGF0Zm9ybSI6IkFwaUtleSJ9LCJhZG1pbmlzdHJhdG9yX2lkIjoiMjA1OTMzMjAwMTIxNDAyMTYzMyIsInVzZXJfdHlwZSI6IiIsImNsaWVudF90eXBlIjoiY2xpZW50X3NlcnZlciIsImlzX3N5c3RlbV9hZG1pbiI6dHJ1ZX0.E8qJPjySHWjnaREUMinir8HcOYiUZODxUTyNZqlT-TKkiZCTTUI7GOm_YEWSN36mYEwXaovfKq4-TC98bVNrUmPHGpGQq7xNtaFLjibBOUJdpNqw6wCCi1pRNElcMBgIcnkwDN7UfTGXufwOZ7dbna9_ZOAcnCyZyFtqAIHCGafyAskMWXaA5fe2q07GkXs4AJgnRy5O0mNlfxRPKCTd-6ZnUCxw7AV0IJSyLXeCYj_bF5C2Xx_0V7NgWsj44MsBfOWni_3aD5JegACycDj1o3n-hhU6W_Xic7T0AWd39_INrUY8MF4Y3BvC1OiWN4JMMawO-ZB-KN84Nzv443lU2g"   # <-- 🔑 替换为你的 API Key
+# ✅ 从 Streamlit Secrets 读取，key 不出现在代码里
+TCB_API_KEY = st.secrets["TCB_API_KEY"]
 TCB_ENV_ID  = "srl-writing-coach-d5dvf4d5"
 
 # CloudBase NoSQL HTTP API 端点（国内上海区）
