@@ -4,10 +4,7 @@ from datetime import datetime
 import random
 import json
 import os
-import requests
-import hashlib
-import hmac
-import time
+from pymongo import MongoClient
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
@@ -17,65 +14,36 @@ deepseek_client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-# ========== 腾讯云开发配置 ==========
-TCB_SECRET_ID = st.secrets["TCB_SECRET_ID"]
-TCB_SECRET_KEY = st.secrets["TCB_SECRET_KEY"]
-TCB_ENV_ID = "srl-writing-coach-d5dvf4d5143ef8"
+# ========== MongoDB 配置 ==========
+MONGO_URI = "mongodb+srv://yutongwei03_db_user:8fAU8Ocfad9nwRow@cluster0.6a2qb.mongodb.net/?retryWrites=true&w=majority"
+MONGO_DB = "srl_writing"
+MONGO_COLLECTION = "sessions"
 
-def _get_tcb_headers() -> dict:
-    """生成腾讯云签名请求头"""
-    timestamp = int(time.time())
-    nonce = timestamp * 1000
-    
-    # 待签名字符串
-    sign_str = f"POST\n\n\n{timestamp}\n/nosql/collections/writing_sessions/documents"
-    
-    # 计算签名
-    signature = hmac.new(
-        TCB_SECRET_KEY.encode('utf-8'),
-        sign_str.encode('utf-8'),
-        hashlib.sha1
-    ).hexdigest()
-    
-    return {
-        "Content-Type": "application/json",
-        "Host": f"{TCB_ENV_ID}.api.tcloudbasegateway.com",
-        "X-TCB-Env": TCB_ENV_ID,
-        "X-TCB-SecretId": TCB_SECRET_ID,
-        "X-TCB-Timestamp": str(timestamp),
-        "X-TCB-Nonce": str(nonce),
-        "X-TCB-Signature": signature,
-    }
-
-def save_to_cloudbase(student_id, student_name, plan_completed,
-                      monitoring_count, conversation, test_round="pre") -> bool:
-    """使用正确的签名方式调用 CloudBase HTTP API"""
-    
-    url = f"https://{TCB_ENV_ID}.api.tcloudbasegateway.com/nosql/collections/writing_sessions/documents"
-    
-    # 只保留最近30条消息，避免请求过大
-    trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
-    
-    payload = {
-        "student_id": student_id,
-        "student_name": student_name,
-        "test_round": test_round,
-        "plan_completed": plan_completed,
-        "monitoring_count": monitoring_count,
-        "conversation": trimmed_conversation,
-        "created_at": datetime.now().isoformat()
-    }
-    
+def save_to_mongodb(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
+    """保存数据到 MongoDB Atlas"""
     try:
-        resp = requests.post(url, headers=_get_tcb_headers(), json=payload, timeout=10)
-        if resp.status_code in (200, 201):
-            print(f"✅ CloudBase 保存成功: {student_id}")
-            return True
-        else:
-            print(f"❌ 保存失败 [{resp.status_code}]: {resp.text}")
-            return False
+        client = MongoClient(MONGO_URI)
+        db = client[MONGO_DB]
+        collection = db[MONGO_COLLECTION]
+        
+        # 只保留最近50条消息，避免文档过大
+        trimmed_conversation = conversation[-50:] if len(conversation) > 50 else conversation
+        
+        doc = {
+            "student_id": student_id,
+            "student_name": student_name,
+            "test_round": test_round,
+            "plan_completed": plan_completed,
+            "monitoring_count": monitoring_count,
+            "conversation": trimmed_conversation,
+            "created_at": datetime.now().isoformat()
+        }
+        collection.insert_one(doc)
+        client.close()
+        print(f"✅ MongoDB 保存成功: {student_id}")
+        return True
     except Exception as e:
-        print(f"❌ 网络错误: {e}")
+        print(f"❌ MongoDB 保存失败: {e}")
         return False
 
 # ========== SRL System Prompt ==========
@@ -84,40 +52,20 @@ SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated
 ## CRITICAL LANGUAGE RULE: RESPOND IN 100% ENGLISH. NO CHINESE CHARACTERS.
 
 ## ORIGINALITY CHECK RULES (MUST FOLLOW STRICTLY)
-1. **NEVER praise users for copying examples verbatim**
-2. **ALWAYS detect when users paste your own examples back to you**
-3. **If a user copies your example word-for-word (80%+ match), respond with:**
+1. NEVER praise users for copying examples verbatim
+2. ALWAYS detect when users paste your own examples back to you
+3. If a user copies your example word-for-word (80%+ match), respond with:
    "⚠️ I notice you copied my example sentence. That's okay for learning, but now let's write YOUR OWN version. Change at least 3 words to make it yours."
-
-4. **Check for copying by comparing user input to your last response**
-5. **When you detect copying, don't praise — redirect to original thinking**
-6. **Only praise when the user has clearly written something original**
 
 ## Your Role
 Help students complete Plan → Check → Reflect for ENGLISH writing with ORIGINAL thinking.
-
-## Phase 1: Plan (Forethought)
-- Help set goals, create outline in English
-- End with "Now write ONE original sentence"
-
-## Phase 2: Check (Performance)
-Check five aspects:
-1. Logic: Is the argument coherent?
-2. Evidence: Are there concrete examples?
-3. Language: Grammar, vocabulary, sentence structure
-4. AI Dependency: Did the student just copy or understand?
-5. ORIGINALITY: Is this copied from my example or genuinely new?
-
-## Phase 3: Reflect (Self-Reflection)
-- Guide reflection on learning process
-- Ask: "What did you write that was original?"
 
 ## Core Rules
 1. NEVER write full paragraphs for the user
 2. End each response with ONE small actionable step
 3. Detect and redirect copying, don't praise it"""
 
-# ========== Data Storage Functions (本地 JSON 备份) ==========
+# ========== Data Storage Functions (本地备份) ==========
 DATA_DIR = "srl_writing_data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -144,6 +92,7 @@ def save_conversation(user_id: str, conversation_data: dict):
     return True
 
 def save_current_session():
+    """自动保存当前会话到本地 JSON 和 MongoDB"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         session_data = {
             "session_id": st.session_state.conversation_id,
@@ -153,14 +102,16 @@ def save_current_session():
             "monitoring_count": st.session_state.monitoring_count,
             "messages": st.session_state.messages
         }
+        # 保存到本地
         save_conversation(st.session_state.user_id, session_data)
-        save_to_cloudbase(
+        # 保存到 MongoDB
+        save_to_mongodb(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
+            test_round=st.session_state.test_round,
             plan_completed=st.session_state.plan_completed,
             monitoring_count=st.session_state.monitoring_count,
-            conversation=st.session_state.messages,
-            test_round=st.session_state.test_round
+            conversation=st.session_state.messages
         )
         return True
     return False
@@ -296,15 +247,6 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     st.session_state.conversation_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     st.session_state.session_start = datetime.now().isoformat()
     
-    save_to_cloudbase(
-        student_id=user_id,
-        student_name=user_name,
-        plan_completed=False,
-        monitoring_count=0,
-        conversation=[],
-        test_round=test_round
-    )
-    
     st.session_state.messages.append({
         "role": "assistant",
         "content": f"👋 **Welcome, {user_name}!**\n\nI understand that writing can sometimes feel difficult, tiring, or even stressful — and that's completely normal.\n\nMy role is not to write for you, but to help you **lower those barriers** and build confidence.\n\n**Tell me your English writing topic, and we'll start with a small first step.**\n\n💡 *If you feel stuck, just say \"I'm stuck\" or click the 💪 button below.*\n\n---\n🎨 *Let's write together, like painting with words — one brushstroke at a time.*"
@@ -312,23 +254,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
 
 def do_logout():
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
-        session_data = {
-            "session_id": st.session_state.conversation_id,
-            "start_time": st.session_state.session_start,
-            "end_time": datetime.now().isoformat(),
-            "plan_completed": st.session_state.plan_completed,
-            "monitoring_count": st.session_state.monitoring_count,
-            "messages": st.session_state.messages
-        }
-        save_conversation(st.session_state.user_id, session_data)
-        save_to_cloudbase(
-            student_id=st.session_state.user_id,
-            student_name=st.session_state.user_name,
-            plan_completed=st.session_state.plan_completed,
-            monitoring_count=st.session_state.monitoring_count,
-            conversation=st.session_state.messages,
-            test_round=st.session_state.test_round
-        )
+        save_current_session()
     
     st.session_state.logged_in = False
     st.session_state.user_id = None
@@ -387,7 +313,7 @@ def show_login_page():
         else:
             st.warning("Please enter both Student ID and Name.")
     
-    st.caption("💡 Your writing data is saved locally and to the cloud.")
+    st.caption("💡 Your writing data is saved automatically.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ========== Main App ==========
@@ -501,15 +427,9 @@ def main_app():
             
             st.session_state.messages.append({"role": "assistant", "content": response})
             
+            # 每次对话后自动保存
             try:
-                save_to_cloudbase(
-                    student_id=st.session_state.user_id,
-                    student_name=st.session_state.user_name,
-                    plan_completed=st.session_state.plan_completed,
-                    monitoring_count=st.session_state.monitoring_count,
-                    conversation=st.session_state.messages,
-                    test_round=st.session_state.test_round
-                )
+                save_current_session()
             except Exception as e:
                 print(f"自动保存失败: {e}")
             
