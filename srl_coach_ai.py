@@ -8,7 +8,7 @@ import requests
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
-KIMI_API_KEY = st.secrets["KIMI_API_KEY"]  # 需要在 secrets 中添加
+KIMI_API_KEY = st.secrets["KIMI_API_KEY"]
 
 # DeepSeek 客户端
 deepseek_client = OpenAI(
@@ -27,8 +27,10 @@ SUPABASE_URL = "https://srl-writing-coach.supabase.co"
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
-    """保存数据到 Supabase"""
+    """保存数据到 Supabase（upsert：有则更新，无则插入）"""
     try:
+        print(f"🔵 [Supabase] 开始保存: {student_id} - {test_round}")
+        
         url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
         headers = {
             "apikey": SUPABASE_KEY,
@@ -37,7 +39,11 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             "Prefer": "return=minimal"
         }
         
-        trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
+        # 先检查是否已有该学生的记录
+        check_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?student_id=eq.{student_id}&test_round=eq.{test_round}&select=id"
+        check_response = requests.get(check_url, headers=headers)
+        
+        trimmed_conversation = conversation[-50:] if len(conversation) > 50 else conversation
         
         data = {
             "student_id": student_id,
@@ -46,40 +52,63 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             "plan_completed": plan_completed,
             "monitoring_count": monitoring_count,
             "conversation": trimmed_conversation,
-            "created_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat()
         }
         
-        response = requests.post(url, headers=headers, json=data, timeout=10)
+        # 如果已有记录，使用 PATCH 更新；否则用 POST 插入
+        if check_response.status_code == 200 and check_response.json():
+            record_id = check_response.json()[0]["id"]
+            update_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?id=eq.{record_id}"
+            response = requests.patch(update_url, headers=headers, json=data)
+            print(f"🔄 [Supabase] 更新已有记录: {student_id}")
+        else:
+            data["created_at"] = datetime.now().isoformat()
+            response = requests.post(url, headers=headers, json=data)
+            print(f"📝 [Supabase] 插入新记录: {student_id}")
         
-        if response.status_code in (200, 201):
-            print(f"✅ Supabase 保存成功: {student_id}")
+        if response.status_code in (200, 201, 204):
+            print(f"✅ [Supabase] 保存成功: {student_id}")
             return True
         else:
-            print(f"❌ Supabase 保存失败: {response.text}")
+            print(f"❌ [Supabase] 保存失败: {response.status_code} - {response.text}")
             return False
             
     except Exception as e:
-        print(f"❌ 保存异常: {e}")
+        print(f"❌ [Supabase] 保存异常: {e}")
         return False
 
 # ========== SRL System Prompt ==========
 SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated Learning (SRL) Theory.
 
-## CRITICAL LANGUAGE RULE: RESPOND IN 100% ENGLISH. NO CHINESE CHARACTERS.
+## CRITICAL RULE - YOU MUST FOLLOW:
+- YOU MUST NOT write ANY example sentences, paragraphs, or outlines for the user.
+- YOU MUST ONLY ask questions and guide the user to write their OWN content.
+- NEVER write more than 60 words in a single response.
 
-## ORIGINALITY CHECK RULES (MUST FOLLOW STRICTLY)
+## LANGUAGE RULE: RESPOND IN 100% ENGLISH. NO CHINESE CHARACTERS.
+
+## ORIGINALITY CHECK RULES:
 1. NEVER praise users for copying examples verbatim
 2. ALWAYS detect when users paste your own examples back to you
-3. If a user copies your example word-for-word (80%+ match), respond with:
-   "⚠️ I notice you copied my example sentence. That's okay for learning, but now let's write YOUR OWN version. Change at least 3 words to make it yours."
+3. If a user copies your example word-for-word, respond with:
+   "⚠️ I notice you copied. Write YOUR OWN version. Change at least 3 words."
 
-## Your Role
-Help students complete Plan → Check → Reflect for ENGLISH writing with ORIGINAL thinking.
+## Your Role:
+Help students complete Plan → Check → Reflect for ENGLISH writing.
+You are a QUESTION-ASKER, not a CONTENT-GENERATOR.
 
-## Core Rules
-1. NEVER write full paragraphs for the user
-2. End each response with ONE small actionable step
-3. Detect and redirect copying, don't praise it"""
+## Response Format (MUST FOLLOW):
+- First sentence: Acknowledge the user (max 10 words)
+- Then: Ask ONE specific question
+- Then: Say "Now try writing one sentence."
+
+## Example of CORRECT response:
+"Good start. What is your main argument? Now try writing one sentence."
+
+## Example of WRONG response (DO NOT DO THIS):
+"Great! Here is an example thesis: 'Because...'"
+
+Remember: Ask questions, don't give answers."""
 
 # ========== Data Storage Functions ==========
 DATA_DIR = "srl_writing_data"
@@ -110,6 +139,7 @@ def save_conversation(user_id: str, conversation_data: dict):
 def save_current_session():
     """保存当前会话到本地和 Supabase"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
+        print(f"💾 [保存] 保存当前会话: {st.session_state.user_id}")
         session_data = {
             "session_id": st.session_state.conversation_id,
             "start_time": st.session_state.session_start,
@@ -354,7 +384,7 @@ def call_deepseek(user_input: str) -> str:
 def call_kimi(user_input: str) -> str:
     """调用 Kimi API"""
     messages = [{"role": "system", "content": SRL_SYSTEM_PROMPT}]
-    for msg in st.session_state.messages[-15:]:
+    for msg in st.session_state.messages[-10:]:
         messages.append({"role": msg["role"], "content": msg["content"]})
     messages.append({"role": "user", "content": user_input})
     
@@ -362,8 +392,9 @@ def call_kimi(user_input: str) -> str:
         response = kimi_client.chat.completions.create(
             model="moonshot-v1-8k",
             messages=messages,
-            temperature=0.7,
-            max_tokens=1500
+            temperature=0.3,
+            max_tokens=600,
+            top_p=0.9
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -482,13 +513,14 @@ def main_app():
                 response = call_ai(user_input)
             
             st.session_state.messages.append({"role": "assistant", "content": response})
-
+            
+            # ✅ 每次对话后自动保存（使用 upsert，同一学生同一轮次只更新不新增）
             try:
                 save_current_session()
             except Exception as e:
                 print(f"⚠️ 自动保存失败: {e}")
-
-            # ✅ 只有在学生主动点了 PLAN 按钮之后，AI 回复才标记 plan 完成
+            
+            # 标记 plan 完成
             if st.session_state.get("plan_in_progress") and not st.session_state.plan_completed:
                 st.session_state.plan_completed = True
                 st.session_state.plan_in_progress = False
@@ -505,8 +537,7 @@ def main_app():
 
     def action_check():
         if not st.session_state.plan_completed:
-            st.session_state.user_input = "I haven't finished Step 1 (Planning) yet. Please remind me to complete the plan first before checking."
-            handle_input()
+            st.warning("Please complete Step 1 (Plan) first.")
             return
         last_msg = ""
         for msg in reversed(st.session_state.messages):
@@ -526,8 +557,7 @@ My paragraph:
 
     def action_reflect():
         if not st.session_state.plan_completed:
-            st.session_state.user_input = "I haven't finished Step 1 (Planning) yet. Please remind me to complete the plan first."
-            handle_input()
+            st.warning("Please complete Step 1 (Plan) first.")
             return
         st.session_state.user_input = """Step 3: Self-Reflection.
 
@@ -561,12 +591,10 @@ Help me reflect:
         st.button("📋 **PLAN**\n\n🌱 Set goals & outline", use_container_width=True, on_click=action_plan)
 
     with col2:
-        st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check,
-                  disabled=not st.session_state.plan_completed)
+        st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check)
 
     with col3:
-        st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect,
-                  disabled=not st.session_state.plan_completed)
+        st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect)
 
     col_s1, col_s2, col_s3, col_s4 = st.columns([1, 1, 2, 0.8])
     with col_s1:
