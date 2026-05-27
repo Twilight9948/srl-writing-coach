@@ -16,8 +16,8 @@ deepseek_client = OpenAI(
 
 # ========== Supabase 配置 ==========
 # ！重要！替换成你的值
-SUPABASE_URL = "https://srl-writing-coach.supabase.co"
-SUPABASE_KEY = "sb_publishable_r0YyELsdDwsVh8IcA80Nlw_eHpBe..."
+SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
+SUPABASE_KEY = "sb_publishable_r0YyELsdDWsVh8IcA80Nlw_eHpBe1lY"
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
     """保存数据到 Supabase"""
