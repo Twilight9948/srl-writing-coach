@@ -4,8 +4,7 @@ from datetime import datetime
 import random
 import json
 import os
-from pymongo import MongoClient
-import traceback
+import requests
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
@@ -15,30 +14,26 @@ deepseek_client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
-# ========== MongoDB 配置 ==========
-MONGO_URI = "mongodb+srv://yutongwei03_db_user:8fAU8Ocfad9nwRow@cluster0.6a2qb.mongodb.net/?retryWrites=true&w=majority"
-MONGO_DB = "srl_writing"
-MONGO_COLLECTION = "sessions"
+# ========== Supabase 配置 ==========
+# ！重要！替换成你的值
+SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
+SUPABASE_KEY = "sb_publishable_r0YyELsdDWsVh8IcA80Nlw_eHpBe1lY"
 
-def save_to_mongodb(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
-    """保存数据到 MongoDB Atlas，带详细日志"""
+def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
+    """保存数据到 Supabase"""
     try:
-        print(f"🔵 [MongoDB] 尝试连接 {MONGO_DB}.{MONGO_COLLECTION}...")
+        url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
         
-        # 设置超时时间 5 秒
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        # 只保留最近30条消息
+        trimmed_conversation = conversation[-30:] if len(conversation) > 30 else conversation
         
-        # 测试连接
-        client.admin.command('ping')
-        print(f"🔵 [MongoDB] 连接成功！")
-        
-        db = client[MONGO_DB]
-        collection = db[MONGO_COLLECTION]
-        
-        # 只保留最近50条消息，避免文档过大
-        trimmed_conversation = conversation[-50:] if len(conversation) > 50 else conversation
-        
-        doc = {
+        data = {
             "student_id": student_id,
             "student_name": student_name,
             "test_round": test_round,
@@ -48,15 +43,17 @@ def save_to_mongodb(student_id, student_name, test_round, plan_completed, monito
             "created_at": datetime.now().isoformat()
         }
         
-        result = collection.insert_one(doc)
-        client.close()
+        response = requests.post(url, headers=headers, json=data, timeout=10)
         
-        print(f"✅ [MongoDB] 保存成功: {student_id}, 文档ID: {result.inserted_id}")
-        return True
-        
+        if response.status_code in (200, 201):
+            print(f"✅ Supabase 保存成功: {student_id}")
+            return True
+        else:
+            print(f"❌ Supabase 保存失败: {response.text}")
+            return False
+            
     except Exception as e:
-        print(f"❌ [MongoDB] 保存失败: {type(e).__name__}: {str(e)}")
-        traceback.print_exc()
+        print(f"❌ 保存异常: {e}")
         return False
 
 # ========== SRL System Prompt ==========
@@ -78,7 +75,7 @@ Help students complete Plan → Check → Reflect for ENGLISH writing with ORIGI
 2. End each response with ONE small actionable step
 3. Detect and redirect copying, don't praise it"""
 
-# ========== Data Storage Functions (本地备份) ==========
+# ========== Data Storage Functions ==========
 DATA_DIR = "srl_writing_data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -105,7 +102,7 @@ def save_conversation(user_id: str, conversation_data: dict):
     return True
 
 def save_current_session():
-    """自动保存当前会话到本地 JSON 和 MongoDB"""
+    """保存当前会话到本地和 Supabase"""
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         session_data = {
             "session_id": st.session_state.conversation_id,
@@ -117,11 +114,8 @@ def save_current_session():
         }
         # 保存到本地
         save_conversation(st.session_state.user_id, session_data)
-        print(f"📁 本地保存完成: {st.session_state.user_id}")
-        
-        # 保存到 MongoDB
-        print(f"🔄 开始保存到 MongoDB...")
-        success = save_to_mongodb(
+        # 保存到 Supabase
+        save_to_supabase(
             student_id=st.session_state.user_id,
             student_name=st.session_state.user_name,
             test_round=st.session_state.test_round,
@@ -129,11 +123,6 @@ def save_current_session():
             monitoring_count=st.session_state.monitoring_count,
             conversation=st.session_state.messages
         )
-        if success:
-            print(f"✅ 云端保存完成")
-        else:
-            print(f"⚠️ 云端保存失败，数据已保存在本地")
-        
         return True
     return False
 
