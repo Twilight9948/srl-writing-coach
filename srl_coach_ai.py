@@ -11,13 +11,11 @@ import traceback
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
 KIMI_API_KEY = st.secrets["KIMI_API_KEY"]
 
-# DeepSeek 客户端
 deepseek_client = OpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com"
 )
 
-# Kimi 客户端
 kimi_client = OpenAI(
     api_key=KIMI_API_KEY,
     base_url="https://api.moonshot.cn/v1"
@@ -27,10 +25,9 @@ kimi_client = OpenAI(
 SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-# ========== 修复后的 Supabase 保存函数 ==========
+# ========== 优化后的 Supabase 保存函数 ==========
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
-    """保存数据到 Supabase - 增强稳定版"""
-    print(f"🔵 [Supabase] 开始保存: {student_id} - {test_round} | msgs: {len(conversation) if isinstance(conversation, list) else 0}")
+    print(f"🔵 [Supabase] 开始保存: {student_id} - {test_round} | 消息数: {len(conversation) if isinstance(conversation, list) else 0}")
     
     try:
         url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
@@ -41,11 +38,8 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             "Prefer": "return=minimal"
         }
         
-        # 限制数据大小，避免保存失败
-        if isinstance(conversation, list):
-            trimmed_conversation = conversation[-25:] if len(conversation) > 25 else conversation
-        else:
-            trimmed_conversation = conversation
+        # 限制数据量
+        trimmed_conversation = conversation[-25:] if isinstance(conversation, list) and len(conversation) > 25 else conversation
         
         data = {
             "student_id": student_id,
@@ -57,30 +51,19 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             "updated_at": datetime.now().isoformat()
         }
         
-        # 检查是否已有记录
+        # 检查是否存在记录
         check_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?student_id=eq.{student_id}&test_round=eq.{test_round}&select=id"
-        check_response = requests.get(check_url, headers=headers, timeout=10)
+        check_response = requests.get(check_url, headers=headers, timeout=15)
         
-        print(f"🔵 [Supabase] 检查记录状态码: {check_response.status_code}")
-        
-        if check_response.status_code == 200:
-            try:
-                existing = check_response.json()
-                if existing:  # 更新
-                    record_id = existing[0]["id"]
-                    update_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?id=eq.{record_id}"
-                    response = requests.patch(update_url, headers=headers, json=data, timeout=10)
-                    print(f"🔄 [Supabase] 更新记录: {response.status_code}")
-                else:  # 插入
-                    data["created_at"] = datetime.now().isoformat()
-                    response = requests.post(url, headers=headers, json=data, timeout=10)
-                    print(f"📝 [Supabase] 插入新记录: {response.status_code}")
-            except:
-                data["created_at"] = datetime.now().isoformat()
-                response = requests.post(url, headers=headers, json=data, timeout=10)
+        if check_response.status_code == 200 and check_response.json():
+            record_id = check_response.json()[0]["id"]
+            update_url = f"{SUPABASE_URL}/rest/v1/writing_sessions?id=eq.{record_id}"
+            response = requests.patch(update_url, headers=headers, json=data, timeout=15)
+            print(f"🔄 [Supabase] 更新记录: {response.status_code}")
         else:
             data["created_at"] = datetime.now().isoformat()
-            response = requests.post(url, headers=headers, json=data, timeout=10)
+            response = requests.post(url, headers=headers, json=data, timeout=15)
+            print(f"📝 [Supabase] 插入新记录: {response.status_code}")
         
         if response.status_code in (200, 201, 204):
             print(f"✅ [Supabase] 保存成功: {student_id}")
@@ -90,7 +73,7 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed, monit
             return False
             
     except Exception as e:
-        print(f"❌ [Supabase] 严重异常: {type(e).__name__}: {e}")
+        print(f"❌ [Supabase] 异常: {type(e).__name__}: {e}")
         print(traceback.format_exc())
         return False
 
@@ -113,27 +96,16 @@ SRL_SYSTEM_PROMPT = """You are an academic writing coach based on Self-Regulated
 
 ## Your Role:
 Help students complete Plan → Check → Reflect for ENGLISH writing.
-You are a QUESTION-ASKER, not a CONTENT-GENERATOR.
+You are a QUESTION-ASKER, not a CONTENT-GENERATOR."""
 
-## Response Format (MUST FOLLOW):
-- First sentence: Acknowledge the user (max 10 words)
-- Then: Ask ONE specific question
-- Then: Say "Now try writing one sentence."
-
-Remember: Ask questions, don't give answers."""
-
-# ========== Data Storage Functions ==========
+# ========== Data Storage ==========
 DATA_DIR = "srl_writing_data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-def get_user_data_file(user_id: str) -> str:
-    safe_id = "".join(c for c in user_id if c.isalnum() or c in "._-")
-    return os.path.join(DATA_DIR, f"{safe_id}.json")
-
 def save_conversation(user_id: str, conversation_data: dict):
-    file_path = get_user_data_file(user_id)
     try:
+        file_path = os.path.join(DATA_DIR, f"{user_id}.json")
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 all_data = json.load(f)
@@ -151,10 +123,6 @@ def save_conversation(user_id: str, conversation_data: dict):
         return False
 
 def save_current_session():
-    """保存当前会话到本地和 Supabase"""
-    print("🔵 [DEBUG] save_current_session 被调用")
-    print(f"🔵 [DEBUG] logged_in: {st.session_state.logged_in}, messages长度: {len(st.session_state.messages)}")
-    
     if st.session_state.logged_in and len(st.session_state.messages) > 1:
         session_data = {
             "session_id": st.session_state.conversation_id,
@@ -165,14 +133,13 @@ def save_current_session():
             "messages": st.session_state.messages
         }
         save_conversation(st.session_state.user_id, session_data)
-        
         save_to_supabase(
-            student_id=st.session_state.user_id,
-            student_name=st.session_state.user_name,
-            test_round=st.session_state.test_round,
-            plan_completed=st.session_state.plan_completed,
-            monitoring_count=st.session_state.monitoring_count,
-            conversation=st.session_state.messages
+            st.session_state.user_id,
+            st.session_state.user_name,
+            st.session_state.test_round,
+            st.session_state.plan_completed,
+            st.session_state.monitoring_count,
+            st.session_state.messages
         )
         return True
     return False
@@ -181,106 +148,16 @@ def save_current_session():
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
-    
-    .stApp {
-        background: linear-gradient(135deg, #c9d4c5 0%, #d4cfc4 20%, #e2dcd0 40%, #ede5d8 60%, #dcd0bd 80%, #c4b8a8 100%);
-    }
-    
-    .monet-title {
-        text-align: center;
-        font-family: 'Playfair Display', serif;
-        font-size: 2.8rem;
-        font-weight: 600;
-        color: #2c4a3e;
-        margin-bottom: 0.1rem;
-    }
-    
-    .monet-subtitle {
-        text-align: center;
-        color: #5a6e5a;
-        font-size: 0.8rem;
-        font-style: italic;
-        margin-bottom: 0.5rem;
-    }
-    
-    .intro-text {
-        text-align: center;
-        color: #4a5e4a;
-        font-size: 0.9rem;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.5;
-    }
-    
-    .intro-icon-row {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        margin: 1rem 0;
-    }
-    .intro-icon-item {
-        text-align: center;
-        font-size: 0.8rem;
-        color: #5a6e5a;
-    }
-    .intro-icon-item span {
-        font-size: 1.5rem;
-        display: block;
-    }
-    
-    .login-area {
-        max-width: 300px;
-        margin: 0.5rem auto;
-        text-align: center;
-    }
-    
-    .stButton > button {
-        background: linear-gradient(135deg, #7c9c8c 0%, #9b8b7a 100%);
-        color: white;
-        border: none;
-        border-radius: 40px;
-        padding: 10px 24px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        white-space: nowrap;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        background: linear-gradient(135deg, #6c8c7c 0%, #8b7b6a 100%);
-    }
-    
-    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(135deg, #8daa9a 0%, #6b8a78 100%);
-        color: white;
-        border-radius: 24px 24px 8px 24px;
-        padding: 8px 16px;
-        margin: 8px 0;
-        max-width: 75%;
-        margin-left: auto;
-    }
-    
-    div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background: rgba(245, 240, 230, 0.85);
-        backdrop-filter: blur(4px);
-        border-radius: 24px 24px 24px 8px;
-        padding: 8px 16px;
-        margin: 8px 0;
-        max-width: 85%;
-        color: #3a4a3a;
-        border: 1px solid rgba(200,180,140,0.3);
-    }
-    
-    hr {
-        border: none;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #b8a99a, transparent);
-        margin: 0.5rem 0;
-    }
+    .stApp { background: linear-gradient(135deg, #c9d4c5 0%, #d4cfc4 20%, #e2dcd0 40%, #ede5d8 60%, #dcd0bd 80%, #c4b8a8 100%); }
+    .monet-title { text-align: center; font-family: 'Playfair Display', serif; font-size: 2.8rem; font-weight: 600; color: #2c4a3e; margin-bottom: 0.1rem; }
+    .monet-subtitle { text-align: center; color: #5a6e5a; font-size: 0.8rem; font-style: italic; margin-bottom: 0.5rem; }
+    .intro-text { text-align: center; color: #4a5e4a; font-size: 0.9rem; max-width: 600px; margin: 0 auto; line-height: 1.5; }
+    .stButton > button { background: linear-gradient(135deg, #7c9c8c 0%, #9b8b7a 100%); color: white; border: none; border-radius: 40px; padding: 10px 24px; font-weight: 500; }
+    .stButton > button:hover { transform: translateY(-2px); }
 </style>
 """, unsafe_allow_html=True)
 
-# ========== Login/Session State ==========
+# ========== Session State ==========
 def init_session_state():
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
@@ -297,8 +174,8 @@ def init_session_state():
 
 def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     st.session_state.logged_in = True
-    st.session_state.user_id = user_id
-    st.session_state.user_name = user_name
+    st.session_state.user_id = user_id.strip()
+    st.session_state.user_name = user_name.strip()
     st.session_state.test_round = test_round
     st.session_state.messages = []
     st.session_state.plan_completed = False
@@ -308,72 +185,34 @@ def do_login(user_id: str, user_name: str, test_round: str = "pre"):
     
     st.session_state.messages.append({
         "role": "assistant",
-        "content": f"👋 **Welcome, {user_name}!**\n\nI understand that writing can sometimes feel difficult, tiring, or even stressful — and that's completely normal.\n\nMy role is not to write for you, but to help you **lower those barriers** and build confidence.\n\n**Tell me your English writing topic, and we'll start with a small first step.**\n\n💡 *If you feel stuck, just say \"I'm stuck\" or click the button below.*\n\n---\n🎨 *Let's write together, like painting with words — one brushstroke at a time.*"
+        "content": f"👋 **Welcome, {user_name}!**\n\nI understand that writing can sometimes feel difficult. My role is to help you build confidence.\n\n**Tell me your English writing topic.**"
     })
 
 def do_logout():
-    if st.session_state.logged_in and len(st.session_state.messages) > 1:
-        save_current_session()
-    
+    save_current_session()
     st.session_state.logged_in = False
-    st.session_state.user_id = None
-    st.session_state.user_name = None
-    st.session_state.test_round = "pre"
     st.session_state.messages = []
-    st.session_state.plan_completed = False
-    st.session_state.monitoring_count = 0
     st.rerun()
 
-# ========== Login Page ==========
+# ========== Login Page (已修复 label 警告) ==========
 def show_login_page():
     st.markdown('<div class="monet-title">✍️ SRL Writing Coach</div>', unsafe_allow_html=True)
     st.markdown('<div class="monet-subtitle">🎨 Self-Regulated Learning · Like painting with words</div>', unsafe_allow_html=True)
-    
     st.divider()
     
-    st.markdown("""
-    <div class="intro-text">
-        <strong>SRL Writing Coach</strong> is an AI-powered academic writing assistant 
-        based on Self-Regulated Learning Theory. It helps you become a more confident 
-        and independent writer by guiding you through three essential stages: 
-        <strong>Plan → Check → Reflect</strong>.
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<h4 style="text-align: center; color: #4a5e4a;">🌸 Sign In</h4>', unsafe_allow_html=True)
     
-    st.markdown("""
-    <div class="intro-icon-row">
-        <div class="intro-icon-item"><span>📋</span><strong>Plan</strong><br>Set goals & outline</div>
-        <div class="intro-icon-item"><span>✍️</span><strong>Check</strong><br>Logic · Evidence · Language</div>
-        <div class="intro-icon-item"><span>🤔</span><strong>Reflect</strong><br>Review & improve</div>
-    </div>
-    """, unsafe_allow_html=True)
+    user_id = st.text_input("Student ID / Email", placeholder="e.g., 20240001", key="login_id")
+    user_name = st.text_input("Your Name", placeholder="e.g., Zhang Wei", key="login_name")
+    test_round_option = st.selectbox("Test Round", ["Pre-test", "Post-test"], key="test_round_select")
     
-    st.markdown('<div class="login-area">', unsafe_allow_html=True)
-    st.markdown('<h4 style="text-align: center; margin: 0.5rem 0; color: #4a5e4a;">🌸 Sign In</h4>', unsafe_allow_html=True)
-    
-    st.markdown('<p style="font-size: 0.75rem; color: #5a6e5a; margin-bottom: 0.2rem; text-align: left;">Student ID / Email</p>', unsafe_allow_html=True)
-    user_id = st.text_input("", placeholder="e.g., 20240001", key="login_id", label_visibility="collapsed")
-    
-    st.markdown('<p style="font-size: 0.75rem; color: #5a6e5a; margin-bottom: 0.2rem; text-align: left;">Your Name</p>', unsafe_allow_html=True)
-    user_name = st.text_input("", placeholder="e.g., Zhang Wei", key="login_name", label_visibility="collapsed")
-    
-    st.markdown('<p style="font-size: 0.75rem; color: #5a6e5a; margin-bottom: 0.2rem; text-align: left;">Test Round</p>', unsafe_allow_html=True)
-    test_round_option = st.selectbox("", ["Pre-test", "Post-test"], key="test_round_select", label_visibility="collapsed")
-    
-    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-    with col_btn2:
-        login_clicked = st.button("🎨 Enter the Garden", use_container_width=True, type="primary")
-    
-    if login_clicked:
+    if st.button("🎨 Enter the Garden", type="primary", use_container_width=True):
         if user_id and user_name:
             round_value = "pre" if test_round_option == "Pre-test" else "post"
-            do_login(user_id.strip(), user_name.strip(), round_value)
+            do_login(user_id, user_name, round_value)
             st.rerun()
         else:
             st.warning("Please enter both Student ID and Name.")
-    
-    st.caption("💡 Your writing data is saved automatically.")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # ========== AI Call Functions ==========
 def call_deepseek(user_input: str) -> str:
@@ -384,10 +223,7 @@ def call_deepseek(user_input: str) -> str:
     
     try:
         response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=1500
+            model="deepseek-chat", messages=messages, temperature=0.7, max_tokens=1200
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -401,11 +237,7 @@ def call_kimi(user_input: str) -> str:
     
     try:
         response = kimi_client.chat.completions.create(
-            model="moonshot-v1-8k",
-            messages=messages,
-            temperature=0.3,
-            max_tokens=600,
-            top_p=0.9
+            model="moonshot-v1-8k", messages=messages, temperature=0.3, max_tokens=600
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -414,203 +246,72 @@ def call_kimi(user_input: str) -> str:
 def call_ai(user_input: str) -> str:
     if st.session_state.selected_model == "kimi":
         return call_kimi(user_input)
-    else:
-        return call_deepseek(user_input)
+    return call_deepseek(user_input)
 
 # ========== Main App ==========
 def main_app():
     st.markdown(f"""
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <div class="monet-title" style="text-align: left; font-size: 2rem;">✍️ SRL Writing Coach</div>
-            <div class="monet-subtitle" style="text-align: left;">🎨 Self-Regulated Learning · Like painting with words</div>
+            <div class="monet-subtitle" style="text-align: left;">🎨 Self-Regulated Learning</div>
         </div>
-        <div style="background: rgba(255,248,235,0.3); border-radius: 40px; padding: 6px 18px; text-align: right;">
-            <div style="font-size: 0.85rem; font-weight: 500; color: #2c4a3e;">🎨 {st.session_state.user_name}</div>
-            <div style="font-size: 0.65rem; color: #6b8a78;">{st.session_state.user_id}</div>
-            <div style="font-size: 0.65rem; color: #6b8a78;">Round: {st.session_state.test_round}</div>
+        <div style="text-align: right;">
+            <div>🎨 {st.session_state.user_name}</div>
+            <div style="font-size:0.8rem;">{st.session_state.user_id} | {st.session_state.test_round}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
     st.divider()
-    
+
     with st.sidebar:
-        st.markdown("""
-        <div style="background: rgba(255,248,235,0.25); backdrop-filter: blur(8px); border-radius: 28px; padding: 18px; text-align: center; margin-bottom: 20px;">
-            <span style="font-size: 2rem;">🎨🌿</span><br>
-            <span style="font-size: 1rem; font-weight: 500;">Giverny Garden</span><br>
-            <span style="font-size: 0.75rem;">Your Writing Studio</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
         st.markdown("### 🤖 AI Model")
-        selected_model = st.selectbox(
-            "Choose your AI coach",
-            options=["deepseek", "kimi"],
-            format_func=lambda x: "🐋 DeepSeek" if x == "deepseek" else "🌟 Kimi"
-        )
+        selected_model = st.selectbox("Choose AI Coach", ["deepseek", "kimi"], 
+                                     format_func=lambda x: "🐋 DeepSeek" if x == "deepseek" else "🌟 Kimi")
         st.session_state.selected_model = selected_model
         
-        st.caption(f"👤 {st.session_state.user_name}")
-        st.caption(f"📧 {st.session_state.user_id}")
-        st.caption(f"🔄 Round: {st.session_state.test_round}")
-        
         st.divider()
-        st.markdown("#### 🌱 Growth Path")
-        
-        if st.session_state.plan_completed:
-            st.success("✅ **Plan** — Seed planted")
-        else:
-            st.info("📍 **Plan** — Ready to begin")
-        
-        if st.session_state.plan_completed:
-            if st.session_state.monitoring_count > 0:
-                st.info(f"✍️ **Check** — {st.session_state.monitoring_count} revisions")
-            else:
-                st.warning("⏳ **Check** — Write something first")
-        else:
-            st.caption("🔒 **Check** — Start with Plan")
-        
-        if st.session_state.plan_completed and st.session_state.monitoring_count > 0:
-            st.success("🎯 **Reflect** — Ready to bloom")
-        else:
-            st.caption("🔒 **Reflect** — Complete Plan & Check")
-        
-        st.divider()
-        st.metric("🔄 Revisions", st.session_state.monitoring_count)
-        st.caption(f"📅 Session: {st.session_state.conversation_id[-8:]}")
-        st.divider()
-        
-        notes = [
-            "🌻 Write like planting seeds — one sentence at a time.",
-            "🎨 Every great painting starts with a single brushstroke.",
-            "📝 Revision is where writing blooms.",
-            "🌸 Patience grows beautiful gardens and good writing."
-        ]
-        st.info(f"✨ {random.choice(notes)}")
-        st.divider()
-        
         if st.button("🚪 Sign Out", use_container_width=True):
             do_logout()
-            st.rerun()
-    
-    # 显示聊天历史
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            with st.chat_message("user"):
-                st.markdown(msg["content"])
-        else:
-            with st.chat_message("assistant"):
-                st.markdown(msg["content"])
 
+    # 显示聊天记录
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # 处理输入
     def handle_input():
         user_input = st.session_state.user_input
-        if user_input and user_input.strip():
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            model_name = "Kimi" if st.session_state.selected_model == "kimi" else "DeepSeek"
-            with st.spinner(f"🎨 {model_name} is thinking..."):
-                response = call_ai(user_input)
-            
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            
-            save_current_session()
-            
-            if st.session_state.get("plan_in_progress") and not st.session_state.plan_completed:
-                st.session_state.plan_completed = True
-                st.session_state.plan_in_progress = False
-
-            if "check" in response.lower() or "logic" in response.lower():
-                st.session_state.monitoring_count += 1
-
-            st.session_state.user_input = ""
-
-    def action_plan():
-        st.session_state.plan_in_progress = True
-        st.session_state.user_input = "Let's start Step 1: Planning. Please help me create an outline for my English essay."
-        handle_input()
-
-    def action_check():
-        if not st.session_state.plan_completed:
-            st.warning("Please complete Step 1 (Plan) first.")
+        if not user_input or not user_input.strip():
             return
-        last_msg = ""
-        for msg in reversed(st.session_state.messages):
-            if msg["role"] == "user":
-                last_msg = msg["content"]
-                break
-        if last_msg and len(last_msg) > 30:
-            st.session_state.user_input = f"""Step 2: Please check my English paragraph.
-
-Check: Logic, Evidence, Language, AI Dependency, ORIGINALITY.
-
-My paragraph:
-{last_msg}"""
-        else:
-            st.session_state.user_input = "I'm ready for Step 2. Please guide me."
-        handle_input()
-
-    def action_reflect():
-        if not st.session_state.plan_completed:
-            st.warning("Please complete Step 1 (Plan) first.")
-            return
-        st.session_state.user_input = """Step 3: Self-Reflection.
-
-Help me reflect:
-1. What did I do well?
-2. What was challenging?
-3. What did I write that was original?"""
-        handle_input()
-
-    def action_stuck():
-        st.session_state.user_input = "I'm stuck. Please give me encouragement and ONE small step to continue."
-        handle_input()
-
-    def action_reset():
+            
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        with st.spinner("🎨 Thinking..."):
+            response = call_ai(user_input)
+        
+        st.session_state.messages.append({"role": "assistant", "content": response})
         save_current_session()
-        st.session_state.messages = []
-        st.session_state.plan_completed = False
-        st.session_state.monitoring_count = 0
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": f"✨ **Fresh start, {st.session_state.user_name}!**\n\nTell me your English writing topic, and we'll begin.\n\nYou've got this. One sentence at a time.\n\n🎨 *Like painting, writing gets better with practice.*"
-        })
-        st.rerun()
+        
+        st.session_state.user_input = ""
 
+    # 快捷按钮
     st.markdown("### 🎨 The 3 Steps")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.button("📋 **PLAN**\n\n🌱 Set goals & outline", use_container_width=True, on_click=action_plan)
+        if st.button("📋 PLAN", use_container_width=True):
+            st.session_state.user_input = "Let's start Step 1: Planning. Please help me create an outline."
+            handle_input()
     with col2:
-        st.button("✍️ **CHECK**\n\n🔍 Get feedback", use_container_width=True, on_click=action_check)
+        if st.button("✍️ CHECK", use_container_width=True):
+            st.session_state.user_input = "Step 2: Please check my paragraph."
+            handle_input()
     with col3:
-        st.button("🤔 **REFLECT**\n\n🌟 Review & bloom", use_container_width=True, on_click=action_reflect)
+        if st.button("🤔 REFLECT", use_container_width=True):
+            st.session_state.user_input = "Step 3: Help me reflect on my writing."
+            handle_input()
 
-    col_s1, col_s2, col_s3, col_s4 = st.columns([1, 1, 2, 0.8])
-    with col_s1:
-        st.button("💪 Stuck?", use_container_width=True, on_click=action_stuck)
-    with col_s2:
-        st.button("🔄 Reset", use_container_width=True, on_click=action_reset)
-    with col_s4:
-        if st.button("💾 Save", use_container_width=True):
-            if save_current_session():
-                st.toast("Session saved! 🌸", icon="✅")
-            else:
-                st.toast("Nothing to save yet.", icon="💡")
-
-    st.caption("💡 **Flow:** Plan → Write → Check → Reflect — layer by layer, like a painting.")
-    st.divider()
     st.chat_input("📝 Type your English writing here...", key="user_input", on_submit=handle_input)
-
-    st.divider()
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.caption("⚡ Powered by DeepSeek & Kimi")
-    with c2:
-        st.caption("🎓 SRL Self-Regulated Learning")
-    with c3:
-        st.caption("🔒 Your garden, your data")
 
 # ========== Run ==========
 init_session_state()
