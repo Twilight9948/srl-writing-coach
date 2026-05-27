@@ -23,7 +23,7 @@ kimi_client = OpenAI(
 )
 
 # ========== Supabase 配置 ==========
-SUPABASE_URL = "https://srl-writing-coach.supabase.co"
+SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed, monitoring_count, conversation):
