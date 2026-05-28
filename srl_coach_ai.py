@@ -254,56 +254,11 @@ st.markdown("""
     .intro-icon-item span { font-size: 1.4rem; display: block; margin-bottom: 0.2rem; }
     .login-area { max-width: 360px; margin: 0.5rem auto; }
 
-    /* Step row buttons (marker div is sibling of stButton in Streamlit DOM) */
-    .step-row [data-testid="column"] .stButton > button {
-        width: 100% !important;
-        min-height: 3.25rem !important;
-        padding: 0.45rem 0.35rem !important;
-        border-radius: 14px !important;
-        font-size: 0.82rem !important;
-        font-weight: 600 !important;
-        line-height: 1.25 !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-        border: 2px solid transparent !important;
-        transition: all 0.2s ease !important;
+    .steps-section-title {
+        color: #2c4a3e;
+        font-weight: 600;
+        margin: 0.5rem 0 0.35rem 0;
     }
-    .step-row [data-testid="column"] .step-active ~ [data-testid="stButton"] > button {
-        background: linear-gradient(145deg, #1f6b4f 0%, #2d8a66 100%) !important;
-        color: #fff !important;
-        border-color: #a8dcc4 !important;
-        box-shadow: 0 4px 14px rgba(31, 107, 79, 0.35) !important;
-        transform: translateY(-1px);
-    }
-    .step-row [data-testid="column"] .step-inactive ~ [data-testid="stButton"] > button {
-        background: linear-gradient(145deg, #b8c4bb 0%, #c9c0b2 100%) !important;
-        color: #3d4a40 !important;
-        opacity: 0.88 !important;
-        border-color: rgba(255,255,255,0.35) !important;
-    }
-    .step-row [data-testid="column"] .step-inactive ~ [data-testid="stButton"] > button:hover {
-        opacity: 1 !important;
-        border-color: #8daa9a !important;
-    }
-
-    /* Eval sub-options */
-    .eval-sub-row .stButton > button {
-        min-height: 2.6rem !important;
-        font-size: 0.78rem !important;
-        border-radius: 12px !important;
-        background: linear-gradient(145deg, #5a8a72 0%, #6e9a82 100%) !important;
-        color: #fff !important;
-    }
-
-    /* Utility row */
-    .util-row .stButton > button {
-        min-height: 2.2rem !important;
-        font-size: 0.8rem !important;
-        border-radius: 10px !important;
-        padding: 0.35rem 0.75rem !important;
-        background: linear-gradient(135deg, #8a9a8c 0%, #9a8e7e 100%) !important;
-    }
-
     .step-flow-caption {
         text-align: center;
         color: #4a5e4a;
@@ -346,7 +301,6 @@ st.markdown("""
     }
     hr { border: none; height: 1px; background: linear-gradient(90deg, transparent, #b8a99a, transparent); margin: 0.35rem 0; }
 
-    /* Login primary button */
     .login-area .stButton > button {
         border-radius: 24px !important;
         font-weight: 600 !important;
@@ -425,6 +379,93 @@ def round_display(value: str) -> str:
     if value in legacy:
         return legacy[value]
     return ROUND_LABELS.get(value, value.replace("_", " ").title())
+
+
+STEP_BUTTON_KEYS = {s: f"btn_{s}" for s in STEPS}
+
+
+def inject_step_button_styles(active_step: str) -> None:
+    """Per-step colors via data-st-key + :has() fallback (Streamlit overrides default white buttons)."""
+    active_bg = "linear-gradient(165deg, #186b4f 0%, #2a9d68 55%, #238c5c 100%)"
+    inactive_bg = "linear-gradient(165deg, #b0bdb3 0%, #c4b9aa 100%)"
+    base = """
+        width: 100% !important;
+        height: 4.6rem !important;
+        min-height: 4.6rem !important;
+        max-height: 4.6rem !important;
+        padding: 0.25rem 0.4rem !important;
+        margin: 0 !important;
+        border-radius: 14px !important;
+        font-weight: 600 !important;
+        font-size: 0.78rem !important;
+        line-height: 1.15 !important;
+        white-space: pre-line !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease !important;
+    """
+    rules = []
+    col_idx = {s: i + 1 for i, s in enumerate(STEPS)}
+
+    for step, key in STEP_BUTTON_KEYS.items():
+        on = step == active_step
+        bg = active_bg if on else inactive_bg
+        color = "#ffffff" if on else "#2a3830"
+        border = "2px solid #9fd4b8" if on else "2px solid rgba(255,255,255,0.55)"
+        shadow = "0 5px 18px rgba(24, 107, 79, 0.42)" if on else "0 2px 6px rgba(40, 50, 45, 0.12)"
+        transform = "translateY(-2px)" if on else "none"
+        opacity = "1" if on else "0.9"
+        key_selectors = f'[data-st-key="{key}"] button, [data-testid="stElementContainer"][data-st-key="{key}"] button'
+        col_selector = (
+            f'div.element-container:has(#srl-four-steps) + div.element-container '
+            f'div[data-testid="column"]:nth-child({col_idx[step]}) button'
+        )
+        block = f"{key_selectors}, {col_selector}"
+        rules.append(f"""
+        {block} {{
+            {base}
+            background: {bg} !important;
+            background-color: transparent !important;
+            background-image: {bg} !important;
+            color: {color} !important;
+            border: {border} !important;
+            box-shadow: {shadow} !important;
+            transform: {transform} !important;
+            opacity: {opacity} !important;
+        }}
+        {block}:hover {{
+            opacity: 1 !important;
+            border-color: #7cba9a !important;
+        }}
+        """)
+
+    for key in ("btn_eval_feedback", "btn_eval_score"):
+        rules.append(f"""
+        [data-st-key="{key}"] button {{
+            min-height: 3rem !important;
+            height: 3rem !important;
+            background: linear-gradient(165deg, #3d7358 0%, #528a6c 100%) !important;
+            color: #fff !important;
+            border-radius: 12px !important;
+            border: none !important;
+            font-size: 0.78rem !important;
+        }}
+        """)
+    for key in ("btn_reset", "btn_save"):
+        rules.append(f"""
+        [data-st-key="{key}"] button {{
+            min-height: 2.35rem !important;
+            background: linear-gradient(135deg, #7d8f80 0%, #9a8e7e 100%) !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-size: 0.8rem !important;
+        }}
+        """)
+    st.markdown(f"<style>{''.join(rules)}</style>", unsafe_allow_html=True)
 
 # ========== Login Page ==========
 def show_login_page():
@@ -674,26 +715,25 @@ def main_app():
         })
         st.rerun()
 
-    # ── Step buttons (4 main + util) ──
-    st.markdown("#### The 4 steps")
     step_num = {s: i + 1 for i, s in enumerate(STEPS)}
     cur = st.session_state.current_step
+    inject_step_button_styles(cur)
 
-    st.markdown('<div class="step-row">', unsafe_allow_html=True)
+    st.markdown('<p class="steps-section-title">The 4 steps</p>', unsafe_allow_html=True)
+    st.markdown('<div id="srl-four-steps" style="display:none" aria-hidden="true"></div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4, gap="small")
 
     def render_step_button(step_key: str, icon: str, on_click):
-        css = "step-active" if cur == step_key else "step-inactive"
-        label = STEP_LABELS[step_key]
         n = step_num[step_key]
-        st.markdown(f'<div class="{css}">', unsafe_allow_html=True)
+        label = STEP_LABELS[step_key]
+        is_active = cur == step_key
         st.button(
-            f"{icon} Step {n}\n{label}",
+            f"{icon}\nStep {n}\n{label}",
             use_container_width=True,
             on_click=on_click,
-            key=f"btn_{step_key}",
+            key=STEP_BUTTON_KEYS[step_key],
+            type="primary" if is_active else "secondary",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with c1:
         render_step_button("plan", "📋", action_plan)
@@ -704,15 +744,12 @@ def main_app():
     with c4:
         render_step_button("interaction", "💬", action_interaction)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
     if st.session_state.show_eval_menu and cur == "evaluating":
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
         st.markdown(
             '<div class="eval-pick-title">Official CET holistic scoring · pick a mode</div>',
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="eval-sub-row">', unsafe_allow_html=True)
         e1, e2 = st.columns(2, gap="small")
         with e1:
             st.button(
@@ -728,7 +765,7 @@ def main_app():
                 on_click=action_evaluating_with_score,
                 key="btn_eval_score",
             )
-        st.markdown("</div></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     active_label = STEP_LABELS.get(cur, cur.title())
     st.markdown(
@@ -737,7 +774,6 @@ def main_app():
         unsafe_allow_html=True,
     )
 
-    st.markdown('<div class="util-row">', unsafe_allow_html=True)
     u1, u2, u3, u4, u5 = st.columns([1, 1, 2, 1, 1])
     with u1:
         st.button("Reset", use_container_width=True, on_click=action_reset, key="btn_reset")
@@ -747,8 +783,6 @@ def main_app():
                 st.toast("Saved!", icon="✅")
             else:
                 st.toast("Nothing to save yet.", icon="💡")
-    st.markdown("</div>", unsafe_allow_html=True)
-
     st.chat_input("Type your English writing here...", key="user_input", on_submit=handle_input)
 
     fc1, fc2, fc3 = st.columns(3)
