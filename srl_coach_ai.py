@@ -5,6 +5,7 @@ import random
 import json
 import os
 import requests
+import threading
 
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
@@ -98,14 +99,20 @@ def save_current_session():
             "messages": st.session_state.messages
         }
         save_conversation(st.session_state.user_id, session_data)
-        save_to_supabase(
-            student_id=st.session_state.user_id,
-            student_name=st.session_state.user_name,
-            test_round=st.session_state.test_round,
-            plan_completed=st.session_state.plan_completed,
-            monitoring_count=st.session_state.monitoring_count,
-            conversation=st.session_state.messages,
+        
+        # Save to Supabase in a background thread to prevent UI blocking
+        thread = threading.Thread(
+            target=save_to_supabase,
+            kwargs={
+                "student_id": st.session_state.user_id,
+                "student_name": st.session_state.user_name,
+                "test_round": st.session_state.test_round,
+                "plan_completed": st.session_state.plan_completed,
+                "monitoring_count": st.session_state.monitoring_count,
+                "conversation": st.session_state.messages,
+            }
         )
+        thread.start()
         return True
     return False
 
@@ -754,21 +761,23 @@ def show_login_page():
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-shell">', unsafe_allow_html=True)
-    st.markdown("##### Sign in to start")
-    email = st.text_input("Email", placeholder="", key="login_email")
-    user_name = st.text_input("Your name", placeholder="", key="login_name")
-    round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
-    login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
-    if login_clicked:
-        if email.strip() and user_name.strip():
-            round_value = "round_1" if round_option == "Round 1" else "round_2"
-            do_login(email.strip(), user_name.strip(), round_value)
-            st.rerun()
-        else:
-            st.warning("Please enter your email and name.")
-    st.caption("Your writing is saved automatically after each message.")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Use columns to center the login form
+    _, col_login, _ = st.columns([1, 2, 1])
+    with col_login:
+        with st.container(border=True):
+            st.markdown("##### Sign in to start")
+            email = st.text_input("Email", placeholder="", key="login_email")
+            user_name = st.text_input("Your name", placeholder="", key="login_name")
+            round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
+            login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
+            if login_clicked:
+                if email.strip() and user_name.strip():
+                    round_value = "round_1" if round_option == "Round 1" else "round_2"
+                    do_login(email.strip(), user_name.strip(), round_value)
+                    st.rerun()
+                else:
+                    st.warning("Please enter your email and name.")
+            st.caption("Your writing is saved automatically after each message.")
 
 # ========== Main App ==========
 def main_app():
@@ -858,11 +867,12 @@ def main_app():
                 model="deepseek-chat",
                 messages=messages,
                 temperature=0.7,
-                max_tokens=1500
+                max_tokens=1500,
+                timeout=60 # Add timeout to prevent indefinite hanging
             )
             return resp.choices[0].message.content
         except Exception as e:
-            return f"❌ Error: {str(e)}"
+            return f"❌ AI Response Timeout or Error: {str(e)}. Please try again."
 
     def handle_input(eval_mode: str = "no_score"):
         user_input = st.session_state.get("user_input", "")
