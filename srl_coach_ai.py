@@ -19,7 +19,7 @@ SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
 SUPABASE_KEY = "sb_publishable_r0YyELsdDWsVh8IcA80Nlw_eHpBe1lY"
 
 def save_to_supabase(student_id, student_name, test_round, plan_completed,
-                     monitoring_count, conversation, current_step="plan"):
+                     monitoring_count, conversation):
     try:
         url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
         headers = {
@@ -36,11 +36,13 @@ def save_to_supabase(student_id, student_name, test_round, plan_completed,
             "plan_completed": plan_completed,
             "monitoring_count": monitoring_count,
             "conversation": trimmed,
-            "current_step": current_step,
             "created_at": datetime.now().isoformat()
         }
         resp = requests.post(url, headers=headers, json=data, timeout=10)
-        return resp.status_code in (200, 201)
+        if resp.status_code not in (200, 201):
+            print(f"❌ Supabase error {resp.status_code}: {resp.text}")
+            return False
+        return True
     except Exception as e:
         print(f"❌ Supabase error: {e}")
         return False
@@ -86,7 +88,6 @@ def save_current_session():
             plan_completed=st.session_state.plan_completed,
             monitoring_count=st.session_state.monitoring_count,
             conversation=st.session_state.messages,
-            current_step=st.session_state.current_step
         )
         return True
     return False
