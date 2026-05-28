@@ -25,6 +25,13 @@ STEP_LABELS = {
     "evaluating": "Evaluation",
     "interaction": "Interaction",
 }
+# Shorter labels on step buttons (one line, equal width)
+STEP_BTN_LABEL = {
+    "plan": "Plan",
+    "draft": "Draft",
+    "evaluating": "Evaluate",
+    "interaction": "Interact",
+}
 ROUND_LABELS = {"round_1": "Round 1", "round_2": "Round 2"}
 
 
@@ -206,106 +213,185 @@ After your diagnosis, invite the student to reflect critically:
 End with an open question that invites them to push back or go deeper.
 """
 
-# ========== CSS ==========
+# ========== CSS — Monet's Garden (Giverny) ==========
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap');
+
+    :root {
+        --giverny-sage: #5f8a72;
+        --giverny-sage-light: #8fb39a;
+        --giverny-pond: #9ebfcc;
+        --giverny-lavender: #c8b8d8;
+        --giverny-rose: #ddb8c8;
+        --giverny-cream: #faf6ef;
+        --giverny-paper: #f3ede4;
+        --giverny-ink: #3a5248;
+        --giverny-muted: #6a7f74;
+        --step-h: 3.35rem;
+    }
 
     .stApp {
-        background: linear-gradient(135deg, #c9d4c5 0%, #d4cfc4 20%, #e2dcd0 40%, #ede5d8 60%, #dcd0bd 80%, #c4b8a8 100%);
+        background:
+            radial-gradient(ellipse 80% 50% at 15% 10%, rgba(200, 184, 216, 0.45), transparent 55%),
+            radial-gradient(ellipse 70% 45% at 88% 15%, rgba(158, 191, 204, 0.4), transparent 50%),
+            radial-gradient(ellipse 90% 60% at 50% 100%, rgba(143, 179, 154, 0.35), transparent 55%),
+            radial-gradient(ellipse 50% 40% at 70% 60%, rgba(221, 184, 200, 0.25), transparent 50%),
+            linear-gradient(165deg, #e9f2ec 0%, #f7f2ea 42%, #f0eaf5 78%, #e4efe9 100%);
         font-family: 'Source Sans 3', sans-serif;
+        color: var(--giverny-ink);
     }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(250, 246, 239, 0.97), rgba(232, 242, 236, 0.95)) !important;
+        border-right: 1px solid rgba(95, 138, 114, 0.18) !important;
+    }
+    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] label {
+        color: var(--giverny-ink) !important;
+    }
+
+    .stButton > button[kind="primary"],
+    button[data-testid="stBaseButton-primary"],
+    [data-testid="stBaseButton-primary"] {
+        background: linear-gradient(145deg, #4d7560, #6d9a7e) !important;
+        background-color: #5f8a72 !important;
+        border: 1px solid rgba(255,255,255,0.35) !important;
+        color: #fff !important;
+        box-shadow: 0 3px 12px rgba(77, 117, 96, 0.35) !important;
+    }
+    .stButton > button[kind="primary"]:hover,
+    button[data-testid="stBaseButton-primary"]:hover {
+        background: linear-gradient(145deg, #456a58, #5f8a72) !important;
+        border-color: rgba(255,255,255,0.5) !important;
+        color: #fff !important;
+    }
+    button[data-testid="stBaseButton-primary"] p,
+    button[data-testid="stBaseButton-primary"] div {
+        color: #fff !important;
+    }
+
     .monet-title {
-        text-align: center;
         font-family: 'Playfair Display', serif;
-        font-size: 2.4rem;
+        font-size: 2.35rem;
         font-weight: 600;
-        color: #2c4a3e;
-        margin-bottom: 0.1rem;
+        color: var(--giverny-ink);
+        letter-spacing: 0.02em;
     }
     .monet-subtitle {
-        text-align: center;
-        color: #5a6e5a;
-        font-size: 0.85rem;
+        font-family: 'Cormorant Garamond', serif;
+        color: var(--giverny-muted);
+        font-size: 1.05rem;
         font-style: italic;
-        margin-bottom: 0.5rem;
+    }
+    .monet-badge {
+        background: linear-gradient(135deg, rgba(255,252,248,0.85), rgba(232,245,238,0.75));
+        border: 1px solid rgba(95, 138, 114, 0.22);
+        border-radius: 18px;
+        padding: 10px 18px;
+        box-shadow: 0 4px 20px rgba(58, 82, 72, 0.08);
+    }
+    .login-shell {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 1.5rem 1.75rem 1.25rem;
+        background: linear-gradient(160deg, rgba(255,253,250,0.95), rgba(240,248,243,0.9));
+        border: 1px solid rgba(143, 179, 154, 0.35);
+        border-radius: 24px;
+        box-shadow: 0 12px 40px rgba(58, 82, 72, 0.1);
     }
     .intro-text {
         text-align: center;
-        color: #4a5e4a;
-        font-size: 0.9rem;
-        max-width: 560px;
+        color: var(--giverny-muted);
+        font-size: 0.92rem;
+        max-width: 520px;
         margin: 0 auto;
-        line-height: 1.5;
+        line-height: 1.55;
     }
     .intro-icon-row {
         display: flex;
         justify-content: center;
-        gap: 1.2rem;
-        margin: 1rem 0;
+        gap: 1rem;
+        margin: 1.1rem 0;
         flex-wrap: wrap;
     }
     .intro-icon-item {
         text-align: center;
-        font-size: 0.78rem;
-        color: #5a6e5a;
-        min-width: 72px;
+        font-size: 0.76rem;
+        color: var(--giverny-muted);
+        padding: 0.5rem 0.65rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.45);
+        border: 1px solid rgba(143, 179, 154, 0.2);
+        min-width: 76px;
     }
-    .intro-icon-item span { font-size: 1.4rem; display: block; margin-bottom: 0.2rem; }
-    .login-area { max-width: 360px; margin: 0.5rem auto; }
+    .intro-icon-item span { font-size: 1.35rem; display: block; margin-bottom: 0.15rem; }
 
-    .steps-section-title {
-        color: #2c4a3e;
+    .monet-steps-header {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.15rem;
         font-weight: 600;
-        margin: 0.5rem 0 0.35rem 0;
+        color: var(--giverny-ink);
+        margin: 0.75rem 0 0.5rem;
+        text-align: center;
+        letter-spacing: 0.04em;
     }
     .step-flow-caption {
         text-align: center;
-        color: #4a5e4a;
-        font-size: 0.8rem;
-        margin: 0.25rem 0 0.75rem 0;
+        color: var(--giverny-muted);
+        margin: 0.5rem 0 0.85rem;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 0.95rem;
     }
     .eval-pick-box {
-        background: rgba(255, 252, 245, 0.55);
-        border: 1px solid rgba(140, 170, 150, 0.35);
-        border-radius: 14px;
-        padding: 0.5rem 0.75rem 0.25rem;
-        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75));
+        border: 1px solid rgba(95, 138, 114, 0.28);
+        border-radius: 16px;
+        padding: 0.65rem 0.85rem 0.5rem;
+        margin: 0.5rem 0 0.75rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
     .eval-pick-title {
-        font-size: 0.82rem;
-        color: #3d5248;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1rem;
+        color: var(--giverny-ink);
         font-weight: 600;
-        margin-bottom: 0.35rem;
         text-align: center;
+        margin-bottom: 0.4rem;
     }
 
-    .stTextInput > div { margin-bottom: 0.35rem; }
+    .stTextInput > div > div {
+        background: rgba(255,253,250,0.85) !important;
+        border-radius: 12px !important;
+    }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(135deg, #8daa9a 0%, #6b8a78 100%);
-        color: white;
-        border-radius: 20px 20px 6px 20px;
-        padding: 8px 14px;
-        margin: 4px 0;
-        max-width: 78%;
-        margin-left: auto;
+        background: linear-gradient(135deg, #6d9480 0%, #5a7d6a 100%) !important;
+        color: #fff !important;
+        border-radius: 18px 18px 4px 18px !important;
+        padding: 10px 16px !important;
+        max-width: 78% !important;
+        margin-left: auto !important;
+        box-shadow: 0 2px 10px rgba(77, 117, 96, 0.2) !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background: rgba(245, 240, 230, 0.9);
-        border-radius: 20px 20px 20px 6px;
-        padding: 8px 14px;
-        margin: 4px 0;
-        max-width: 88%;
-        color: #3a4a3a;
-        border: 1px solid rgba(200, 180, 140, 0.3);
+        background: linear-gradient(135deg, rgba(255,252,247,0.98), rgba(243,237,228,0.95)) !important;
+        border: 1px solid rgba(143, 179, 154, 0.25) !important;
+        border-radius: 18px 18px 18px 4px !important;
+        color: var(--giverny-ink) !important;
+        max-width: 88% !important;
+        box-shadow: 0 2px 12px rgba(58, 82, 72, 0.06) !important;
     }
-    hr { border: none; height: 1px; background: linear-gradient(90deg, transparent, #b8a99a, transparent); margin: 0.35rem 0; }
-
-    .login-area .stButton > button {
-        border-radius: 24px !important;
-        font-weight: 600 !important;
-        min-height: 2.5rem !important;
+    [data-testid="stChatInput"] {
+        border-radius: 16px !important;
+        border-color: rgba(95, 138, 114, 0.35) !important;
+        background: rgba(255,253,250,0.9) !important;
     }
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(143,179,154,0.5), transparent);
+        margin: 0.5rem 0;
+    }
+    #MainMenu, footer, header { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -384,49 +470,76 @@ def round_display(value: str) -> str:
 STEP_BUTTON_KEYS = {s: f"btn_{s}" for s in STEPS}
 
 
+def _st_key(key: str) -> str:
+    return f".st-key-{key}"
+
+
+def inject_css_block(css: str) -> None:
+    if hasattr(st, "html"):
+        st.html(f"<style>{css}</style>")
+    else:
+        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+
 def inject_step_button_styles(active_step: str) -> None:
-    """Per-step colors via data-st-key + :has() fallback (Streamlit overrides default white buttons)."""
-    active_bg = "linear-gradient(165deg, #186b4f 0%, #2a9d68 55%, #238c5c 100%)"
-    inactive_bg = "linear-gradient(165deg, #b0bdb3 0%, #c4b9aa 100%)"
-    base = """
+    active_bg = "linear-gradient(155deg, #4a735f 0%, #6d9a7e 50%, #5f8a72 100%)"
+    inactive_bg = "linear-gradient(155deg, #d8e4dc 0%, #e8e0d4 45%, #ddd4e8 100%)"
+    btn_props = """
         width: 100% !important;
-        height: 4.6rem !important;
-        min-height: 4.6rem !important;
-        max-height: 4.6rem !important;
-        padding: 0.25rem 0.4rem !important;
+        height: var(--step-h) !important;
+        min-height: var(--step-h) !important;
+        max-height: var(--step-h) !important;
+        padding: 0 0.5rem !important;
         margin: 0 !important;
         border-radius: 14px !important;
         font-weight: 600 !important;
-        font-size: 0.78rem !important;
-        line-height: 1.15 !important;
-        white-space: pre-line !important;
-        display: inline-flex !important;
+        font-size: 0.8rem !important;
+        line-height: 1.1 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        text-align: center !important;
         box-sizing: border-box !important;
-        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease !important;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease !important;
     """
-    rules = []
+    rules = [
+        """
+        div:has(> #srl-step-grid-marker) + div [data-testid="stHorizontalBlock"] {
+            align-items: stretch !important;
+            gap: 0.5rem !important;
+        }
+        div:has(> #srl-step-grid-marker) + div [data-testid="column"] {
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        div:has(> #srl-step-grid-marker) + div [data-testid="column"] > div {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        """
+    ]
     col_idx = {s: i + 1 for i, s in enumerate(STEPS)}
 
     for step, key in STEP_BUTTON_KEYS.items():
         on = step == active_step
         bg = active_bg if on else inactive_bg
-        color = "#ffffff" if on else "#2a3830"
-        border = "2px solid #9fd4b8" if on else "2px solid rgba(255,255,255,0.55)"
-        shadow = "0 5px 18px rgba(24, 107, 79, 0.42)" if on else "0 2px 6px rgba(40, 50, 45, 0.12)"
-        transform = "translateY(-2px)" if on else "none"
-        opacity = "1" if on else "0.9"
-        key_selectors = f'[data-st-key="{key}"] button, [data-testid="stElementContainer"][data-st-key="{key}"] button'
-        col_selector = (
-            f'div.element-container:has(#srl-four-steps) + div.element-container '
-            f'div[data-testid="column"]:nth-child({col_idx[step]}) button'
+        color = "#ffffff" if on else "#3a5248"
+        border = "2px solid rgba(180, 220, 195, 0.9)" if on else "1px solid rgba(143, 179, 154, 0.35)"
+        shadow = "0 6px 20px rgba(74, 115, 95, 0.38)" if on else "0 2px 8px rgba(58, 82, 72, 0.08)"
+        transform = "translateY(-2px) scale(1.02)" if on else "none"
+        opacity = "1" if on else "0.82"
+        sk = _st_key(key)
+        col_sel = (
+            f'div:has(> #srl-step-grid-marker) + div '
+            f'[data-testid="column"]:nth-child({col_idx[step]}) button'
         )
-        block = f"{key_selectors}, {col_selector}"
+        block = f"{sk} button, {sk} [data-testid='stBaseButton-secondary'], {sk} [data-testid='stBaseButton-primary'], {col_sel}"
         rules.append(f"""
         {block} {{
-            {base}
+            {btn_props}
             background: {bg} !important;
             background-color: transparent !important;
             background-image: {bg} !important;
@@ -436,62 +549,89 @@ def inject_step_button_styles(active_step: str) -> None:
             transform: {transform} !important;
             opacity: {opacity} !important;
         }}
+        {sk} button p, {sk} button div, {sk} button span {{
+            color: {color} !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap !important;
+        }}
         {block}:hover {{
             opacity: 1 !important;
-            border-color: #7cba9a !important;
+            border-color: rgba(95, 138, 114, 0.65) !important;
+        }}
+        {block}:focus, {block}:focus-visible {{
+            outline: none !important;
+            box-shadow: {shadow} !important;
         }}
         """)
 
+    eval_bg = "linear-gradient(155deg, #5a7d68 0%, #7a9f88 100%)"
     for key in ("btn_eval_feedback", "btn_eval_score"):
+        sk = _st_key(key)
         rules.append(f"""
-        [data-st-key="{key}"] button {{
-            min-height: 3rem !important;
-            height: 3rem !important;
-            background: linear-gradient(165deg, #3d7358 0%, #528a6c 100%) !important;
+        {sk} button, {sk} [data-testid='stBaseButton-secondary'] {{
+            height: 2.85rem !important;
+            min-height: 2.85rem !important;
+            max-height: 2.85rem !important;
+            background: {eval_bg} !important;
+            background-image: {eval_bg} !important;
             color: #fff !important;
             border-radius: 12px !important;
-            border: none !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
             font-size: 0.78rem !important;
+            white-space: nowrap !important;
         }}
+        {sk} button p {{ color: #fff !important; }}
         """)
-    for key in ("btn_reset", "btn_save"):
+
+    util_bg = "linear-gradient(135deg, #9aab9c 0%, #b5a898 100%)"
+    for key in ("btn_reset", "btn_save", "btn_signout", "btn_login_start"):
+        sk = _st_key(key)
         rules.append(f"""
-        [data-st-key="{key}"] button {{
-            min-height: 2.35rem !important;
-            background: linear-gradient(135deg, #7d8f80 0%, #9a8e7e 100%) !important;
+        {sk} button, {sk} [data-testid='stBaseButton-primary'], {sk} [data-testid='stBaseButton-secondary'] {{
+            min-height: 2.4rem !important;
+            background: {util_bg if key != 'btn_login_start' else 'linear-gradient(145deg, #4d7560, #6d9a7e)'} !important;
+            background-image: {util_bg if key != 'btn_login_start' else 'linear-gradient(145deg, #4d7560, #6d9a7e)'} !important;
             color: #fff !important;
             border: none !important;
-            border-radius: 10px !important;
+            border-radius: 20px !important;
             font-size: 0.8rem !important;
         }}
+        {sk} button p {{ color: #fff !important; }}
         """)
-    st.markdown(f"<style>{''.join(rules)}</style>", unsafe_allow_html=True)
+
+    inject_css_block("".join(rules))
 
 # ========== Login Page ==========
 def show_login_page():
-    st.markdown('<div class="monet-title">✍️ SRL Writing Coach</div>', unsafe_allow_html=True)
-    st.markdown('<div class="monet-subtitle">Self-Regulated Learning · English Writing</div>', unsafe_allow_html=True)
-    st.divider()
+    st.markdown(
+        '<div class="monet-title" style="text-align:center;margin-top:0.5rem;">'
+        '🌸 Giverny Writing Garden</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="monet-subtitle" style="text-align:center;">'
+        'Self-Regulated Learning · like painting with words</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown("""
     <div class="intro-text">
-        Four stages: <strong>Plan → Draft → Evaluation → Interaction</strong>
+        Walk through four soft brushstrokes of writing:<br>
+        <strong>Plan → Draft → Evaluate → Interact</strong>
     </div>
     <div class="intro-icon-row">
-        <div class="intro-icon-item"><span>📋</span><strong>Plan</strong></div>
-        <div class="intro-icon-item"><span>✍️</span><strong>Draft</strong></div>
-        <div class="intro-icon-item"><span>📊</span><strong>Evaluation</strong></div>
-        <div class="intro-icon-item"><span>💬</span><strong>Interaction</strong></div>
+        <div class="intro-icon-item"><span>🌿</span><strong>Plan</strong></div>
+        <div class="intro-icon-item"><span>✏️</span><strong>Draft</strong></div>
+        <div class="intro-icon-item"><span>🪷</span><strong>Evaluate</strong></div>
+        <div class="intro-icon-item"><span>💭</span><strong>Interact</strong></div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="login-area">', unsafe_allow_html=True)
-    st.markdown("#### Sign in")
+    st.markdown('<div class="login-shell">', unsafe_allow_html=True)
+    st.markdown("##### 🎨 Enter the garden")
     email = st.text_input("Email", placeholder="you@university.edu", key="login_email")
     user_name = st.text_input("Your name", placeholder="e.g., Wei Yutong", key="login_name")
     round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        login_clicked = st.button("Start", use_container_width=True, type="primary")
+    login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
     if login_clicked:
         if email.strip() and user_name.strip():
             round_value = "round_1" if round_option == "Round 1" else "round_2"
@@ -501,22 +641,26 @@ def show_login_page():
             st.warning("Please enter your email and name.")
     st.caption("Your writing is saved automatically after each message.")
     st.markdown("</div>", unsafe_allow_html=True)
+    inject_step_button_styles("plan")
 
 # ========== Main App ==========
 def main_app():
-    cur = st.session_state.current_step
     round_label = round_display(st.session_state.test_round)
 
     st.markdown(f"""
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.25rem;">
         <div>
-            <div class="monet-title" style="text-align:left;font-size:1.85rem;margin:0;">✍️ SRL Writing Coach</div>
-            <div class="monet-subtitle" style="text-align:left;margin:0;">Plan → Draft → Evaluation → Interaction</div>
+            <div class="monet-title" style="text-align:left;font-size:1.75rem;margin:0;">
+                🌸 Giverny Writing Garden
+            </div>
+            <div class="monet-subtitle" style="text-align:left;margin:0;">
+                Plan → Draft → Evaluate → Interact
+            </div>
         </div>
-        <div style="background:rgba(255,248,235,0.45);border-radius:16px;padding:8px 16px;text-align:right;">
-            <div style="font-size:0.9rem;font-weight:600;color:#2c4a3e;">{st.session_state.user_name}</div>
-            <div style="font-size:0.72rem;color:#5a6e5a;">{st.session_state.user_id}</div>
-            <div style="font-size:0.72rem;color:#5a6e5a;">{round_label}</div>
+        <div class="monet-badge" style="text-align:right;">
+            <div style="font-size:0.92rem;font-weight:600;">{st.session_state.user_name}</div>
+            <div style="font-size:0.72rem;opacity:0.85;">{st.session_state.user_id}</div>
+            <div style="font-size:0.72rem;opacity:0.85;">{round_label}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -524,9 +668,14 @@ def main_app():
 
     with st.sidebar:
         st.markdown("""
-        <div style="background:rgba(255,248,235,0.35);border-radius:16px;padding:14px;text-align:center;margin-bottom:12px;">
-            <span style="font-size:1.6rem;">🎨</span><br>
-            <span style="font-weight:600;">Writing Studio</span>
+        <div style="background:linear-gradient(145deg,rgba(255,252,248,0.9),rgba(232,245,238,0.85));
+            border-radius:18px;padding:16px;text-align:center;margin-bottom:14px;
+            border:1px solid rgba(143,179,154,0.25);">
+            <span style="font-size:1.75rem;">🪷</span><br>
+            <span style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;">
+                Monet's Studio
+            </span><br>
+            <span style="font-size:0.72rem;opacity:0.8;">Your writing garden</span>
         </div>
         """, unsafe_allow_html=True)
         st.caption(f"👤 {st.session_state.user_name}")
@@ -560,7 +709,7 @@ def main_app():
         ]
         st.info(f"💡 {random.choice(tips)}")
         st.divider()
-        if st.button("Sign out", use_container_width=True):
+        if st.button("Sign out", use_container_width=True, key="btn_signout"):
             do_logout()
 
     for msg in st.session_state.messages:
@@ -717,22 +866,20 @@ def main_app():
 
     step_num = {s: i + 1 for i, s in enumerate(STEPS)}
     cur = st.session_state.current_step
-    inject_step_button_styles(cur)
 
-    st.markdown('<p class="steps-section-title">The 4 steps</p>', unsafe_allow_html=True)
-    st.markdown('<div id="srl-four-steps" style="display:none" aria-hidden="true"></div>', unsafe_allow_html=True)
+    st.markdown('<p class="monet-steps-header">🌿 The four steps in your garden</p>', unsafe_allow_html=True)
+    st.markdown('<div id="srl-step-grid-marker" aria-hidden="true"></div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4, gap="small")
 
     def render_step_button(step_key: str, icon: str, on_click):
         n = step_num[step_key]
-        label = STEP_LABELS[step_key]
-        is_active = cur == step_key
+        short = STEP_BTN_LABEL[step_key]
         st.button(
-            f"{icon}\nStep {n}\n{label}",
+            f"{icon}  {n} · {short}",
             use_container_width=True,
             on_click=on_click,
             key=STEP_BUTTON_KEYS[step_key],
-            type="primary" if is_active else "secondary",
+            type="secondary",
         )
 
     with c1:
@@ -747,25 +894,29 @@ def main_app():
     if st.session_state.show_eval_menu and cur == "evaluating":
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="eval-pick-title">Official CET holistic scoring · pick a mode</div>',
+            '<div class="eval-pick-title">🪷 Choose your evaluation mode</div>',
             unsafe_allow_html=True,
         )
         e1, e2 = st.columns(2, gap="small")
         with e1:
             st.button(
-                "Feedback only\n(no score)",
+                "Feedback only",
                 use_container_width=True,
                 on_click=action_evaluating_no_score,
                 key="btn_eval_feedback",
+                type="secondary",
             )
         with e2:
             st.button(
-                "CET score +\nfeedback",
+                "CET score + feedback",
                 use_container_width=True,
                 on_click=action_evaluating_with_score,
                 key="btn_eval_score",
+                type="secondary",
             )
         st.markdown("</div>", unsafe_allow_html=True)
+
+    inject_step_button_styles(cur)
 
     active_label = STEP_LABELS.get(cur, cur.title())
     st.markdown(
@@ -774,24 +925,24 @@ def main_app():
         unsafe_allow_html=True,
     )
 
-    u1, u2, u3, u4, u5 = st.columns([1, 1, 2, 1, 1])
-    with u1:
-        st.button("Reset", use_container_width=True, on_click=action_reset, key="btn_reset")
-    with u5:
-        if st.button("Save", use_container_width=True, key="btn_save"):
+    uc1, uc2, uc3 = st.columns([1, 1, 1])
+    with uc1:
+        st.button("🔄 Reset", use_container_width=True, on_click=action_reset, key="btn_reset", type="secondary")
+    with uc2:
+        if st.button("💾 Save", use_container_width=True, key="btn_save", type="secondary"):
             if save_current_session():
-                st.toast("Saved!", icon="✅")
+                st.toast("Saved to your garden 🌸", icon="✅")
             else:
                 st.toast("Nothing to save yet.", icon="💡")
-    st.chat_input("Type your English writing here...", key="user_input", on_submit=handle_input)
+    st.chat_input("📝 Type your English writing here...", key="user_input", on_submit=handle_input)
 
     fc1, fc2, fc3 = st.columns(3)
     with fc1:
-        st.caption("Powered by DeepSeek")
+        st.caption("⚡ DeepSeek")
     with fc2:
-        st.caption("SRL · CET official 15-pt rubric")
+        st.caption("🎓 SRL · CET rubric")
     with fc3:
-        st.caption("Data saved securely")
+        st.caption("🌸 Your garden, your words")
 
 # ========== Run ==========
 init_session_state()
