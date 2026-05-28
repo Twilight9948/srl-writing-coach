@@ -114,8 +114,19 @@ BASE_RULES = """## CRITICAL RULES
 - RESPOND IN 100% ENGLISH. NO CHINESE.
 - NEVER write full paragraphs for the student.
 - End every response with ONE small actionable next step.
-- If student copies your example word-for-word (80%+ match): "⚠️ I notice you copied my example. Now write YOUR OWN version — change at least 3 words."
+
+## COPYING POLICY (strict — avoid false accusations)
+- Accuse copying ONLY if the student repeats a **full model sentence you gave** with ≥90% identical wording in the same order.
+- These are NOT copying: filling in your template with their own ideas; using your sentence pattern with different content; paraphrasing; answering your question in their own words; combining your structure with original reasons/examples.
+- If the student says they did not copy, **believe them**, apologize briefly if you were wrong, and continue coaching. Do not repeat the copying warning in the same session unless they paste your text again verbatim.
 """
+
+SCORE_FRAMEWORK_LABELS = {
+    "cet": "CET-4/6",
+    "ielts": "IELTS",
+    "toefl": "TOEFL",
+    "creative": "Creative (100 pts)",
+}
 
 PLAN_PROMPT = BASE_RULES + """
 ## Your Role: PLAN Coach (Step 1)
@@ -161,35 +172,104 @@ Evaluate along these four dimensions (used by examiners holistically):
 | 2-pt  | **1–3**   | Disorganized; confused thinking. Language fragmented, OR most sentences have errors (mostly serious). |
 """
 
-EVALUATING_PROMPT_NO_SCORE = BASE_RULES + CET_OFFICIAL_RUBRIC + """
-## Your Role: EVALUATION Coach — Feedback Only (Step 3, no score)
-Apply the official CET holistic rubric above. Do **not** give a numeric score or tier label.
-
-Comment on all four dimensions (Relevance, Clarity, Coherence, Language accuracy):
-- For each: one strength + one specific improvement tied to the student's draft.
-- Briefly note which official tier their draft *resembles* in plain language only (e.g., "closest to the 11-point description") — but do NOT state a number.
-
-End with: "What will you revise first?"
-"""
-
-EVALUATING_PROMPT_WITH_SCORE = BASE_RULES + CET_OFFICIAL_RUBRIC + """
-## Your Role: EVALUATION Coach — Official CET Score + Feedback (Step 3, scored)
-Apply holistic impression scoring exactly as in the official table above.
+EVALUATING_PROMPT_CET_SCORE = BASE_RULES + CET_OFFICIAL_RUBRIC + """
+## Your Role: EVALUATION Coach — CET-4/CET-6 Scored (Step 3)
+Apply holistic impression scoring exactly as in the official CET table above.
 
 Process:
-1. Judge the draft on Relevance, Clarity, Coherence, and Language accuracy.
+1. Judge on Relevance, Clarity, Coherence, and Language accuracy.
 2. Select the **single best-matching tier** (14 / 11 / 8 / 5 / 2).
-3. Assign a score **within that tier's range** (e.g., strong 11-pt draft → 12/15). You may use ±1 within the tier if warranted; do not jump more than one tier without explaining why.
+3. Assign a score **within that tier's range** (±1 within tier if warranted).
 
-Required response format:
-**Relevance:** [brief comment]
-**Clarity:** [brief comment]
-**Coherence:** [brief comment]
-**Language accuracy:** [brief comment]
+Required format:
+**Relevance:** … **Clarity:** … **Coherence:** … **Language accuracy:** …
+**Official tier:** [14/11/8/5/2-pt] — [descriptor]
+**CET Writing Score:** [X/15]
+**Priority to improve:** [one action]
+"""
 
-**Official tier:** [14-pt / 11-pt / 8-pt / 5-pt / 2-pt] — [one-sentence paraphrase of that tier's descriptor]
-**CET Writing Score:** [X/15] (range for this tier: …)
-**Priority to improve:** [one concrete revision targeting the weakest dimension]
+IELTS_TASK2_RUBRIC = """
+## IELTS Academic Writing Task 2 — Band Descriptors (summary)
+Four criteria (each contributes to overall band 0–9, reported in 0.5 steps):
+1. **Task Response (TR):** Address the prompt; clear position; ideas extended and supported.
+2. **Coherence & Cohesion (CC):** Logical organisation; clear progression; appropriate cohesive devices.
+3. **Lexical Resource (LR):** Range, precision, appropriacy; spelling/word formation.
+4. **Grammatical Range & Accuracy (GRA):** Variety of structures; error frequency and impact on communication.
+Bands 9→1: fully addresses task with depth → minimal/no coherent message. Band 0 if off-topic, not English, or wholly copied.
+"""
+
+EVALUATING_PROMPT_IELTS_SCORE = BASE_RULES + IELTS_TASK2_RUBRIC + """
+## Your Role: EVALUATION Coach — IELTS Task 2 Scored (Step 3)
+Score as an IELTS examiner using Task 2 band descriptors (essay / opinion / discussion tasks).
+
+Process:
+1. Score each criterion: TR, CC, LR, GRA (bands 0–9, half-bands allowed, e.g. 6.5).
+2. Explain evidence from the student's draft for each.
+3. Give **Overall Band** (average of four, rounded to nearest 0.5).
+
+Required format:
+**Task Response:** [band] — [comment]
+**Coherence & Cohesion:** [band] — [comment]
+**Lexical Resource:** [band] — [comment]
+**Grammatical Range & Accuracy:** [band] — [comment]
+**Overall IELTS Band:** [X.X/9]
+**Priority to improve:** [one action]
+"""
+
+TOEFL_INDEPENDENT_RUBRIC = """
+## TOEFL iBT Independent Writing (Academic Discussion style) — 0–5 each dimension
+**Content (0–5):** Relevant, well-elaborated explanations, examples, details (5) → words/phrases only, no coherent ideas (1) → blank/off-topic/copied (0).
+**Language Expression (0–5):** Variety of syntax + precise idiomatic word choice (5) → severely limited (1).
+**Grammar (0–5):** Few errors (4–5) → serious frequent errors (1).
+1-point note: minimal original language / mostly borrowed from stimulus → 1. Entirely copied from prompt → 0.
+"""
+
+TOEFL_INTEGRATED_RUBRIC = """
+## TOEFL iBT Integrated Writing — 0–5 each dimension
+**Content (0–5):** Select important lecture points and relate accurately to reading (5) → little/no relevant lecture content (1) → merely copies reading (0).
+**Expression (0–5):** Well-organized; minor errors OK (5) → errors obscure meaning (2) → language too low to derive meaning (1).
+If the task is NOT integrated (no lecture vs reading), use Independent rubric instead and say so briefly.
+"""
+
+EVALUATING_PROMPT_TOEFL_SCORE = BASE_RULES + TOEFL_INDEPENDENT_RUBRIC + TOEFL_INTEGRATED_RUBRIC + """
+## Your Role: EVALUATION Coach — TOEFL Scored (Step 3)
+Default to **Independent / Academic Discussion** scoring (Content + Language Expression + Grammar, each 0–5).
+If the draft clearly summarizes lecture vs reading, use **Integrated** (Content + Expression, each 0–5).
+
+Required format:
+**Content:** [X/5] — [comment]
+**Language Expression:** [X/5] — [comment]  (or **Expression** for integrated)
+**Grammar:** [X/5] — [comment]  (independent only; omit if integrated-only)
+**Estimated total:** [sum or holistic summary /30 or /10 as appropriate]
+**Priority to improve:** [one action]
+"""
+
+EVALUATING_PROMPT_CREATIVE_SCORE = BASE_RULES + """
+## Your Role: EVALUATION Coach — Creative Writing / Holistic Rank (Step 3, 100-point scale)
+For creative, narrative, or personal writing where exam rubrics do not apply. Give a **holistic score out of 100** plus dimensional feedback.
+
+Dimensions (each out of 25, sum = 100):
+1. **Ideas & originality (25):** Voice, imagination, insight, engagement.
+2. **Structure & flow (25):** Opening, development, pacing, ending.
+3. **Language & style (25):** Word choice, imagery, tone, sentence variety.
+4. **Mechanics (25):** Grammar, spelling, punctuation (do not over-penalize if voice is strong).
+
+Required format:
+**Ideas & originality:** [X/25] — …
+**Structure & flow:** [X/25] — …
+**Language & style:** [X/25] — …
+**Mechanics:** [X/25] — …
+**Overall score:** [X/100] — [one-line rank label: e.g. Strong / Developing / Emerging]
+**What to try next:** [one creative revision task]
+"""
+
+EVALUATING_PROMPT_NO_SCORE = BASE_RULES + """
+## Your Role: EVALUATION Coach — Feedback Only (Step 3, no score)
+Give rich qualitative feedback on academic/creative writing. Do **not** assign exam scores or bands.
+
+Comment on: relevance to topic, clarity of ideas, organization/cohesion, language use, and originality.
+For each area: one strength + one specific improvement tied to their draft.
+End with: "What will you revise first?"
 """
 
 INTERACTION_PROMPT = BASE_RULES + """
@@ -250,6 +330,7 @@ st.markdown("""
         color: var(--giverny-ink) !important;
     }
 
+    /* Streamlit 1.57 — sage primary (override default red) */
     .stButton > button[kind="primary"],
     button[data-testid="stBaseButton-primary"],
     [data-testid="stBaseButton-primary"] {
@@ -289,6 +370,14 @@ st.markdown("""
         border-radius: 18px;
         padding: 10px 18px;
         box-shadow: 0 4px 20px rgba(58, 82, 72, 0.08);
+    }
+    .monet-card {
+        background: linear-gradient(145deg, rgba(255,253,249,0.92), rgba(243,237,228,0.88));
+        border: 1px solid rgba(143, 179, 154, 0.28);
+        border-radius: 20px;
+        padding: 1.25rem 1.5rem;
+        margin: 0.5rem 0 1rem;
+        box-shadow: 0 6px 28px rgba(58, 82, 72, 0.07);
     }
     .login-shell {
         max-width: 400px;
@@ -338,6 +427,7 @@ st.markdown("""
     .step-flow-caption {
         text-align: center;
         color: var(--giverny-muted);
+        font-size: 0.82rem;
         margin: 0.5rem 0 0.85rem;
         font-family: 'Cormorant Garamond', serif;
         font-size: 0.95rem;
@@ -357,6 +447,12 @@ st.markdown("""
         font-weight: 600;
         text-align: center;
         margin-bottom: 0.4rem;
+    }
+    .util-bar {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin: 0.25rem 0 0.75rem;
     }
 
     .stTextInput > div > div {
@@ -392,6 +488,12 @@ st.markdown("""
         margin: 0.5rem 0;
     }
     #MainMenu, footer, header { visibility: hidden; }
+
+    .st-key-btn_login_start button,
+    .st-key-btn_login_start [data-testid="stBaseButton-primary"] {
+        border-radius: 20px !important;
+        min-height: 2.5rem !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -410,14 +512,26 @@ def init_session_state():
         st.session_state.current_step = "plan"
         st.session_state.plan_in_progress = False
         st.session_state.show_eval_menu = False
+        st.session_state.show_eval_score_menu = False
+        st.session_state.eval_score_framework = "cet"
     elif st.session_state.get("current_step") == "monitoring":
         st.session_state.current_step = "draft"
 
-def get_system_prompt(step: str, eval_mode: str = "no_score") -> str:
+def get_system_prompt(step: str, eval_mode: str = "no_score",
+                      score_framework: str = "cet") -> str:
+    if step == "evaluating":
+        if eval_mode == "no_score":
+            return EVALUATING_PROMPT_NO_SCORE
+        score_map = {
+            "cet": EVALUATING_PROMPT_CET_SCORE,
+            "ielts": EVALUATING_PROMPT_IELTS_SCORE,
+            "toefl": EVALUATING_PROMPT_TOEFL_SCORE,
+            "creative": EVALUATING_PROMPT_CREATIVE_SCORE,
+        }
+        return score_map.get(score_framework, EVALUATING_PROMPT_CET_SCORE)
     mapping = {
         "plan":        PLAN_PROMPT,
         "draft":       DRAFT_PROMPT,
-        "evaluating":  EVALUATING_PROMPT_WITH_SCORE if eval_mode == "score" else EVALUATING_PROMPT_NO_SCORE,
         "interaction": INTERACTION_PROMPT,
     }
     return mapping.get(step, PLAN_PROMPT)
@@ -433,6 +547,8 @@ def do_login(user_id: str, user_name: str, test_round: str = "round_1"):
     st.session_state.current_step = "plan"
     st.session_state.plan_in_progress = False
     st.session_state.show_eval_menu = False
+    st.session_state.show_eval_score_menu = False
+    st.session_state.eval_score_framework = "cet"
     st.session_state.conversation_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     st.session_state.session_start = datetime.now().isoformat()
     st.session_state.messages.append({
@@ -458,6 +574,7 @@ def do_logout():
     st.session_state.monitoring_count = 0
     st.session_state.current_step = "plan"
     st.session_state.show_eval_menu = False
+    st.session_state.show_eval_score_menu = False
     st.rerun()
 
 def round_display(value: str) -> str:
@@ -471,10 +588,12 @@ STEP_BUTTON_KEYS = {s: f"btn_{s}" for s in STEPS}
 
 
 def _st_key(key: str) -> str:
+    """Streamlit 1.57: widget key becomes CSS class st-key-<key> on the widget root."""
     return f".st-key-{key}"
 
 
 def inject_css_block(css: str) -> None:
+    """Inject raw CSS (st.html if available, else markdown)."""
     if hasattr(st, "html"):
         st.html(f"<style>{css}</style>")
     else:
@@ -482,6 +601,7 @@ def inject_css_block(css: str) -> None:
 
 
 def inject_step_button_styles(active_step: str) -> None:
+    """Giverny step styles — optimized for Streamlit 1.57 (.st-key-* selectors)."""
     active_bg = "linear-gradient(155deg, #4a735f 0%, #6d9a7e 50%, #5f8a72 100%)"
     inactive_bg = "linear-gradient(155deg, #d8e4dc 0%, #e8e0d4 45%, #ddd4e8 100%)"
     btn_props = """
@@ -506,6 +626,7 @@ def inject_step_button_styles(active_step: str) -> None:
     """
     rules = [
         """
+        /* Step row layout (Streamlit 1.57) */
         div:has(> #srl-step-grid-marker) + div [data-testid="stHorizontalBlock"] {
             align-items: stretch !important;
             gap: 0.5rem !important;
@@ -565,7 +686,10 @@ def inject_step_button_styles(active_step: str) -> None:
         """)
 
     eval_bg = "linear-gradient(155deg, #5a7d68 0%, #7a9f88 100%)"
-    for key in ("btn_eval_feedback", "btn_eval_score"):
+    for key in (
+        "btn_eval_feedback", "btn_eval_score_menu",
+        "btn_eval_cet", "btn_eval_ielts", "btn_eval_toefl", "btn_eval_creative",
+    ):
         sk = _st_key(key)
         rules.append(f"""
         {sk} button, {sk} [data-testid='stBaseButton-secondary'] {{
@@ -605,31 +729,35 @@ def inject_step_button_styles(active_step: str) -> None:
 def show_login_page():
     st.markdown(
         '<div class="monet-title" style="text-align:center;margin-top:0.5rem;">'
-        '🌸 Giverny Writing Garden</div>',
+        '✍️ SRL Writing Coach</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
         '<div class="monet-subtitle" style="text-align:center;">'
-        'Self-Regulated Learning · like painting with words</div>',
+        'Self-Regulated Learning · English writing with AI guidance</div>',
         unsafe_allow_html=True,
     )
     st.markdown("""
-    <div class="intro-text">
-        Walk through four soft brushstrokes of writing:<br>
-        <strong>Plan → Draft → Evaluate → Interact</strong>
+    <div class="intro-text" style="max-width:640px;">
+        <p><strong>What is this?</strong> An AI writing coach built on <strong>Self-Regulated Learning (SRL)</strong>.
+        You move through four stages—<strong>Plan → Draft → Evaluate → Interact</strong>—so you set goals,
+        write in your own words, get rubric-based feedback, and reflect on your progress.</p>
+        <p><strong>Who is it for?</strong> University students practising English writing (essays, CET, IELTS, TOEFL,
+        or creative pieces). The coach asks questions and gives short feedback; it does <em>not</em> write the essay for you.</p>
+        <p><strong>Data:</strong> Your chats are saved automatically for research (Round 1 / Round 2).</p>
     </div>
     <div class="intro-icon-row">
-        <div class="intro-icon-item"><span>🌿</span><strong>Plan</strong></div>
-        <div class="intro-icon-item"><span>✏️</span><strong>Draft</strong></div>
-        <div class="intro-icon-item"><span>🪷</span><strong>Evaluate</strong></div>
-        <div class="intro-icon-item"><span>💭</span><strong>Interact</strong></div>
+        <div class="intro-icon-item"><span>📋</span><strong>Plan</strong><br><small>Goals & outline</small></div>
+        <div class="intro-icon-item"><span>✍️</span><strong>Draft</strong><br><small>Write & self-check</small></div>
+        <div class="intro-icon-item"><span>📊</span><strong>Evaluate</strong><br><small>Rubric feedback</small></div>
+        <div class="intro-icon-item"><span>💬</span><strong>Interact</strong><br><small>Reflect & discuss</small></div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="login-shell">', unsafe_allow_html=True)
-    st.markdown("##### 🎨 Enter the garden")
-    email = st.text_input("Email", placeholder="you@university.edu", key="login_email")
-    user_name = st.text_input("Your name", placeholder="e.g., Wei Yutong", key="login_name")
+    st.markdown("##### Sign in to start")
+    email = st.text_input("Email", placeholder="", key="login_email")
+    user_name = st.text_input("Your name", placeholder="", key="login_name")
     round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
     login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
     if login_clicked:
@@ -641,20 +769,20 @@ def show_login_page():
             st.warning("Please enter your email and name.")
     st.caption("Your writing is saved automatically after each message.")
     st.markdown("</div>", unsafe_allow_html=True)
-    inject_step_button_styles("plan")
 
 # ========== Main App ==========
 def main_app():
+    cur = st.session_state.current_step
     round_label = round_display(st.session_state.test_round)
 
     st.markdown(f"""
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.25rem;">
         <div>
             <div class="monet-title" style="text-align:left;font-size:1.75rem;margin:0;">
-                🌸 Giverny Writing Garden
+                ✍️ SRL Writing Coach
             </div>
             <div class="monet-subtitle" style="text-align:left;margin:0;">
-                Plan → Draft → Evaluate → Interact
+                Self-Regulated Learning · Plan → Draft → Evaluate → Interact
             </div>
         </div>
         <div class="monet-badge" style="text-align:right;">
@@ -673,9 +801,9 @@ def main_app():
             border:1px solid rgba(143,179,154,0.25);">
             <span style="font-size:1.75rem;">🪷</span><br>
             <span style="font-family:'Cormorant Garamond',serif;font-size:1.15rem;font-weight:600;">
-                Monet's Studio
+                SRL Coach
             </span><br>
-            <span style="font-size:0.72rem;opacity:0.8;">Your writing garden</span>
+            <span style="font-size:0.72rem;opacity:0.8;">Giverny-inspired studio</span>
         </div>
         """, unsafe_allow_html=True)
         st.caption(f"👤 {st.session_state.user_name}")
@@ -717,7 +845,10 @@ def main_app():
             st.markdown(msg["content"])
 
     def call_ai(user_input: str, eval_mode: str = "no_score") -> str:
-        system = get_system_prompt(st.session_state.current_step, eval_mode)
+        framework = st.session_state.get("eval_score_framework", "cet")
+        system = get_system_prompt(
+            st.session_state.current_step, eval_mode, framework
+        )
         messages = [{"role": "system", "content": system}]
         for m in st.session_state.messages[-15:]:
             messages.append({"role": m["role"], "content": m["content"]})
@@ -766,6 +897,29 @@ def main_app():
         st.session_state.current_step = step
         if step != "evaluating":
             st.session_state.show_eval_menu = False
+            st.session_state.show_eval_score_menu = False
+
+    def _run_scored_evaluation(framework: str):
+        set_step("evaluating")
+        st.session_state.show_eval_menu = False
+        st.session_state.show_eval_score_menu = False
+        st.session_state.eval_score_framework = framework
+        if not st.session_state.plan_completed:
+            st.session_state.user_input = (
+                "I want a scored evaluation, but I haven't finished Planning yet. Please remind me."
+            )
+            handle_input()
+            return
+        label = SCORE_FRAMEWORK_LABELS.get(framework, framework)
+        text = last_user_writing()
+        prompt = (
+            f"Step 3 — Evaluation with **{label}** scoring. "
+            "Please score my writing using the rubric for this exam type."
+        )
+        if text and len(text) > 30:
+            prompt += f"\n\nMy writing:\n{text}"
+        st.session_state.user_input = prompt
+        handle_input(eval_mode="score")
 
     def action_plan():
         set_step("plan")
@@ -796,9 +950,16 @@ def main_app():
     def action_open_evaluation():
         set_step("evaluating")
         st.session_state.show_eval_menu = True
+        st.session_state.show_eval_score_menu = False
+
+    def action_show_score_frameworks():
+        set_step("evaluating")
+        st.session_state.show_eval_menu = True
+        st.session_state.show_eval_score_menu = True
 
     def action_evaluating_no_score():
         set_step("evaluating")
+        st.session_state.show_eval_score_menu = False
         if not st.session_state.plan_completed:
             st.session_state.user_input = (
                 "I want Evaluation feedback, but I haven't finished Planning yet. Please remind me."
@@ -815,23 +976,17 @@ def main_app():
         st.session_state.user_input = prompt
         handle_input(eval_mode="no_score")
 
-    def action_evaluating_with_score():
-        set_step("evaluating")
-        if not st.session_state.plan_completed:
-            st.session_state.user_input = (
-                "I want a CET scored evaluation, but I haven't finished Planning yet. Please remind me."
-            )
-            handle_input()
-            return
-        text = last_user_writing()
-        prompt = (
-            "Step 3 — Evaluation (official CET holistic scoring, 15-point scale). "
-            "Please assign a tier and score (13–15 / 10–12 / 7–9 / 4–6 / 1–3) with feedback."
-        )
-        if text and len(text) > 30:
-            prompt += f"\n\nMy writing:\n{text}"
-        st.session_state.user_input = prompt
-        handle_input(eval_mode="score")
+    def action_eval_cet():
+        _run_scored_evaluation("cet")
+
+    def action_eval_ielts():
+        _run_scored_evaluation("ielts")
+
+    def action_eval_toefl():
+        _run_scored_evaluation("toefl")
+
+    def action_eval_creative():
+        _run_scored_evaluation("creative")
 
     def action_interaction():
         set_step("interaction")
@@ -855,6 +1010,7 @@ def main_app():
         st.session_state.current_step = "plan"
         st.session_state.plan_in_progress = False
         st.session_state.show_eval_menu = False
+        st.session_state.show_eval_score_menu = False
         st.session_state.messages.append({
             "role": "assistant",
             "content": (
@@ -864,6 +1020,7 @@ def main_app():
         })
         st.rerun()
 
+    # ── Step buttons (4 main + util) ──
     step_num = {s: i + 1 for i, s in enumerate(STEPS)}
     cur = st.session_state.current_step
 
@@ -894,7 +1051,7 @@ def main_app():
     if st.session_state.show_eval_menu and cur == "evaluating":
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="eval-pick-title">🪷 Choose your evaluation mode</div>',
+            '<div class="eval-pick-title">Step 3 — Choose evaluation type</div>',
             unsafe_allow_html=True,
         )
         e1, e2 = st.columns(2, gap="small")
@@ -908,12 +1065,32 @@ def main_app():
             )
         with e2:
             st.button(
-                "CET score + feedback",
+                "Score + feedback",
                 use_container_width=True,
-                on_click=action_evaluating_with_score,
-                key="btn_eval_score",
+                on_click=action_show_score_frameworks,
+                key="btn_eval_score_menu",
                 type="secondary",
             )
+        if st.session_state.show_eval_score_menu:
+            st.markdown(
+                '<div class="eval-pick-title" style="margin-top:0.6rem;">'
+                'Select scoring system</div>',
+                unsafe_allow_html=True,
+            )
+            s1, s2, s3, s4 = st.columns(4, gap="small")
+            with s1:
+                st.button("CET-4/6", use_container_width=True, on_click=action_eval_cet,
+                          key="btn_eval_cet", type="secondary")
+            with s2:
+                st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
+                          key="btn_eval_ielts", type="secondary")
+            with s3:
+                st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
+                          key="btn_eval_toefl", type="secondary")
+            with s4:
+                st.button("Creative 100", use_container_width=True, on_click=action_eval_creative,
+                          key="btn_eval_creative", type="secondary")
+            st.caption("Creative = holistic rank out of 100 for narrative / personal writing.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     inject_step_button_styles(cur)
@@ -940,7 +1117,7 @@ def main_app():
     with fc1:
         st.caption("⚡ DeepSeek")
     with fc2:
-        st.caption("🎓 SRL · CET rubric")
+        st.caption("🎓 SRL · multi-rubric")
     with fc3:
         st.caption("🌸 Your garden, your words")
 
