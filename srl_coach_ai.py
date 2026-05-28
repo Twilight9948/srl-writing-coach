@@ -316,22 +316,35 @@ st.markdown("""
         --giverny-ink: #3a5248;
         --giverny-muted: #6a7f74;
         --step-h: 3.35rem;
+        --chat-gap: 1.5rem;
     }
 
     .stApp {
         background:
-            radial-gradient(ellipse 80% 50% at 15% 10%, rgba(200, 184, 216, 0.45), transparent 55%),
-            radial-gradient(ellipse 70% 45% at 88% 15%, rgba(158, 191, 204, 0.4), transparent 50%),
-            radial-gradient(ellipse 90% 60% at 50% 100%, rgba(143, 179, 154, 0.35), transparent 55%),
-            radial-gradient(ellipse 50% 40% at 70% 60%, rgba(221, 184, 200, 0.25), transparent 50%),
-            linear-gradient(165deg, #e9f2ec 0%, #f7f2ea 42%, #f0eaf5 78%, #e4efe9 100%);
+            radial-gradient(circle at 10% 20%, rgba(158, 191, 204, 0.3) 0%, transparent 40%),
+            radial-gradient(circle at 90% 80%, rgba(200, 184, 216, 0.3) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(143, 179, 154, 0.15) 0%, transparent 60%),
+            linear-gradient(165deg, #f0f7f2 0%, #faf7f2 40%, #f4f0f8 80%, #edf5f0 100%);
+        background-attachment: fixed;
         font-family: 'Source Sans 3', sans-serif;
         color: var(--giverny-ink);
     }
 
+    /* Subtle water lily pattern overlay */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: radial-gradient(var(--giverny-sage-light) 0.5px, transparent 0.5px);
+        background-size: 40px 40px;
+        opacity: 0.12;
+        pointer-events: none;
+        z-index: -1;
+    }
+
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(250, 246, 239, 0.97), rgba(232, 242, 236, 0.95)) !important;
-        border-right: 1px solid rgba(95, 138, 114, 0.18) !important;
+        background: linear-gradient(180deg, rgba(250, 246, 239, 0.98), rgba(232, 242, 236, 0.96)) !important;
+        border-right: 1px solid rgba(95, 138, 114, 0.15) !important;
     }
     [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] label {
         color: var(--giverny-ink) !important;
@@ -379,12 +392,12 @@ st.markdown("""
         box-shadow: 0 4px 20px rgba(58, 82, 72, 0.08);
     }
     .monet-card {
-        background: linear-gradient(145deg, rgba(255,253,249,0.92), rgba(243,237,228,0.88));
-        border: 1px solid rgba(143, 179, 154, 0.28);
-        border-radius: 20px;
-        padding: 1.25rem 1.5rem;
-        margin: 0.5rem 0 1rem;
-        box-shadow: 0 6px 28px rgba(58, 82, 72, 0.07);
+        background: linear-gradient(145deg, rgba(255,253,249,0.95), rgba(243,237,228,0.9));
+        border: 1px solid rgba(143, 179, 154, 0.22);
+        border-radius: 24px;
+        padding: 1.5rem 2rem;
+        margin: 1rem 0 1.5rem;
+        box-shadow: 0 8px 32px rgba(58, 82, 72, 0.05);
     }
     .login-shell {
         max-width: 400px;
@@ -424,20 +437,20 @@ st.markdown("""
 
     .monet-steps-header {
         font-family: 'Cormorant Garamond', serif;
-        font-size: 1.15rem;
+        font-size: 1.35rem;
         font-weight: 600;
         color: var(--giverny-ink);
-        margin: 0.75rem 0 0.5rem;
+        margin: 2rem 0 1rem;
         text-align: center;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
     }
     .step-flow-caption {
         text-align: center;
         color: var(--giverny-muted);
-        font-size: 0.82rem;
-        margin: 0.5rem 0 0.85rem;
-        font-family: 'Cormorant Garamond', serif;
         font-size: 0.95rem;
+        margin: 1.25rem 0 2rem;
+        font-family: 'Cormorant Garamond', serif;
+        font-style: italic;
     }
     .eval-pick-box {
         background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75));
@@ -466,22 +479,34 @@ st.markdown("""
         background: rgba(255,253,250,0.85) !important;
         border-radius: 12px !important;
     }
+
+    /* Chat message container gap */
+    div[data-testid="stChatMessage"] {
+        margin-bottom: var(--chat-gap) !important;
+    }
+
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(135deg, #6d9480 0%, #5a7d6a 100%) !important;
-        color: #fff !important;
-        border-radius: 18px 18px 4px 18px !important;
-        padding: 10px 16px !important;
-        max-width: 78% !important;
+        background: linear-gradient(135deg, #f3f8f5 0%, #edf5f0 100%) !important;
+        color: var(--giverny-ink) !important;
+        border: 1px solid rgba(143, 179, 154, 0.2) !important;
+        border-radius: 20px 20px 4px 20px !important;
+        padding: 1.15rem 1.4rem !important;
+        max-width: 85% !important;
         margin-left: auto !important;
-        box-shadow: 0 2px 10px rgba(77, 117, 96, 0.2) !important;
+        box-shadow: 0 4px 15px rgba(58, 82, 72, 0.05) !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background: linear-gradient(135deg, rgba(255,252,247,0.98), rgba(243,237,228,0.95)) !important;
-        border: 1px solid rgba(143, 179, 154, 0.25) !important;
-        border-radius: 18px 18px 18px 4px !important;
+        background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(250,248,245,0.96)) !important;
+        border: 1px solid rgba(143, 179, 154, 0.22) !important;
+        border-radius: 20px 20px 20px 4px !important;
         color: var(--giverny-ink) !important;
-        max-width: 88% !important;
-        box-shadow: 0 2px 12px rgba(58, 82, 72, 0.06) !important;
+        max-width: 96% !important;
+        padding: 1.4rem 1.75rem !important;
+        box-shadow: 0 4px 20px rgba(58, 82, 72, 0.04) !important;
+        line-height: 1.65 !important;
+    }
+    div[data-testid="stChatMessage"] .stMarkdown {
+        line-height: 1.65 !important;
     }
     [data-testid="stChatInput"] {
         border-radius: 16px !important;
