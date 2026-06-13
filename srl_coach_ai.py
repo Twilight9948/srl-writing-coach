@@ -316,30 +316,18 @@ st.markdown("""
         --giverny-ink: #3a5248;
         --giverny-muted: #6a7f74;
         --step-h: 3.35rem;
-        --chat-gap: 1.5rem;
+        --chat-gap: 1.25rem;
     }
 
+    /* PERFORMANCE OPTIMIZED: Simple, fast-rendering background */
     .stApp {
-        background:
-            radial-gradient(circle at 10% 20%, rgba(158, 191, 204, 0.3) 0%, transparent 40%),
-            radial-gradient(circle at 90% 80%, rgba(200, 184, 216, 0.3) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(143, 179, 154, 0.15) 0%, transparent 60%),
-            linear-gradient(165deg, #f0f7f2 0%, #faf7f2 40%, #f4f0f8 80%, #edf5f0 100%);
+        background-color: #f5f8f6;
+        background-image: 
+            radial-gradient(at 20% 30%, rgba(158, 191, 204, 0.15), transparent 55%),
+            radial-gradient(at 80% 70%, rgba(200, 184, 216, 0.15), transparent 55%);
         background-attachment: fixed;
         font-family: 'Source Sans 3', sans-serif;
         color: var(--giverny-ink);
-    }
-
-    /* Subtle water lily pattern overlay */
-    .stApp::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background-image: radial-gradient(var(--giverny-sage-light) 0.5px, transparent 0.5px);
-        background-size: 40px 40px;
-        opacity: 0.12;
-        pointer-events: none;
-        z-index: -1;
     }
 
     [data-testid="stSidebar"] {
@@ -546,8 +534,11 @@ def init_session_state():
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
         st.session_state.eval_score_framework = "cet"
+        st.session_state.completed_steps = set()  # 新增：记录已完成的步骤
     elif st.session_state.get("current_step") == "monitoring":
         st.session_state.current_step = "draft"
+    if "completed_steps" not in st.session_state: # 兼容旧数据
+        st.session_state.completed_steps = set()
 
 def get_system_prompt(step: str, eval_mode: str = "no_score",
                       score_framework: str = "cet") -> str:
@@ -904,6 +895,11 @@ def main_app():
         if not user_input or not user_input.strip():
             return
         st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        # 核心：既然你在这个步骤发了消息，就把这个步骤标记为“已完成”
+        current_step = st.session_state.current_step
+        st.session_state.completed_steps.add(current_step)
+        
         with st.spinner("Thinking..."):
             response = call_ai(user_input, eval_mode)
         st.session_state.messages.append({"role": "assistant", "content": response})
@@ -1046,6 +1042,7 @@ def main_app():
         st.session_state.plan_in_progress = False
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
+        st.session_state.completed_steps = set()  # 清空完成记录
         st.session_state.messages.append({
             "role": "assistant",
             "content": (
@@ -1066,12 +1063,18 @@ def main_app():
     def render_step_button(step_key: str, icon: str, on_click):
         n = step_num[step_key]
         short = STEP_BTN_LABEL[step_key]
+        is_completed = step_key in st.session_state.completed_steps
+        is_active = step_key == cur
+        
+        # 渲染图标：已完成显示✅，当前步骤显示对应图标，未完成显示原图标
+        display_icon = "✅" if is_completed else icon
+        
         st.button(
-            f"{icon}  {n} · {short}",
+            f"{display_icon}  {n} · {short}",
             use_container_width=True,
             on_click=on_click,
             key=STEP_BUTTON_KEYS[step_key],
-            type="secondary",
+            type="primary" if is_active else "secondary",
         )
 
     with c1:
