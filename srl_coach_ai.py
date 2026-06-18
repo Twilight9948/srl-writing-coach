@@ -10,10 +10,13 @@ import threading
 # ========== API Configuration ==========
 DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
 
-deepseek_client = OpenAI(
-    api_key=DEEPSEEK_API_KEY,
-    base_url="https://api.deepseek.com"
-)
+# 使用 Streamlit 的缓存机制，只初始化一次，且不阻塞启动
+@st.cache_resource
+def get_deepseek_client():
+    return OpenAI(
+        api_key=DEEPSEEK_API_KEY,
+        base_url="https://api.deepseek.com"
+    )
 
 # ========== Supabase 配置 ==========
 SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
@@ -303,7 +306,9 @@ End with an open question that invites them to push back or go deeper.
 # ========== CSS — Monet's Garden (Giverny) ==========
 st.markdown("""
 <style>
+    /* PERFORMANCE: Google Fonts 暂时禁用以实现极速启动
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap');
+    */
 
     :root {
         --giverny-sage: #5f8a72;
@@ -319,14 +324,14 @@ st.markdown("""
         --chat-gap: 1.25rem;
     }
 
-    /* PERFORMANCE OPTIMIZED: Simple, fast-rendering background */
+    /* PERFORMANCE OPTIMIZED: Simple, fast-rendering background + System Fonts */
     .stApp {
         background-color: #f5f8f6;
         background-image: 
             radial-gradient(at 20% 30%, rgba(158, 191, 204, 0.15), transparent 55%),
             radial-gradient(at 80% 70%, rgba(200, 184, 216, 0.15), transparent 55%);
         background-attachment: fixed;
-        font-family: 'Source Sans 3', sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--giverny-ink);
     }
 
@@ -360,14 +365,14 @@ st.markdown("""
     }
 
     .monet-title {
-        font-family: 'Playfair Display', serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 2.35rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--giverny-ink);
         letter-spacing: 0.02em;
     }
     .monet-subtitle {
-        font-family: 'Cormorant Garamond', serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--giverny-muted);
         font-size: 1.05rem;
         font-style: italic;
@@ -424,9 +429,9 @@ st.markdown("""
     .intro-icon-item span { font-size: 1.35rem; display: block; margin-bottom: 0.15rem; }
 
     .monet-steps-header {
-        font-family: 'Cormorant Garamond', serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 1.35rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--giverny-ink);
         margin: 2rem 0 1rem;
         text-align: center;
@@ -437,7 +442,7 @@ st.markdown("""
         color: var(--giverny-muted);
         font-size: 0.95rem;
         margin: 1.25rem 0 2rem;
-        font-family: 'Cormorant Garamond', serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-style: italic;
     }
     .eval-pick-box {
@@ -449,7 +454,7 @@ st.markdown("""
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
     .eval-pick-title {
-        font-family: 'Cormorant Garamond', serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 1rem;
         color: var(--giverny-ink);
         font-weight: 600;
@@ -879,7 +884,8 @@ def main_app():
             messages.append({"role": m["role"], "content": m["content"]})
         messages.append({"role": "user", "content": user_input})
         try:
-            resp = deepseek_client.chat.completions.create(
+            client = get_deepseek_client() # 只有真的要调用 AI 时才初始化连接
+            resp = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=messages,
                 temperature=0.7,
