@@ -407,10 +407,10 @@ st.markdown("""
         max-width: 430px;
         margin: 0 auto;
         padding: 1.35rem 1.45rem 1.2rem;
-        background: linear-gradient(160deg, rgba(255,253,250,0.96), rgba(240,248,243,0.92));
-        border: 1px solid rgba(143, 179, 154, 0.32);
-        border-radius: 24px;
-        box-shadow: 0 14px 44px rgba(58, 82, 72, 0.1);
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
     }
     .intro-text {
         text-align: center;
@@ -1209,7 +1209,7 @@ def main_app():
     if st.session_state.show_draft_choice and cur == "draft":
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
         st.markdown(
-            '<div class="eval-pick-title">Step 2 — Let\'s start writing!</div>',
+            '<div class="eval-pick-title">After Plan — choose your next move</div>',
             unsafe_allow_html=True,
         )
         d1, d2 = st.columns(2, gap="small")
@@ -1221,7 +1221,7 @@ def main_app():
                 key="btn_draft_has_idea",
                 type="primary",
             )
-            st.caption("Great! Let's refine it together.")
+            st.caption("Great! Let's refine your idea together.")
         with d2:
             st.button(
                 "🤷 I have no idea",
@@ -1230,7 +1230,7 @@ def main_app():
                 key="btn_draft_no_idea",
                 type="secondary",
             )
-            st.caption("No worries! I'll suggest some CET-4 topics.")
+            st.caption("No worries! I'll help you find a topic and start from there.")
         st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.show_eval_menu and cur == "evaluating":
