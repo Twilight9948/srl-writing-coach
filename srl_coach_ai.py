@@ -8,11 +8,20 @@ import requests
 import threading
 
 # ========== API Configuration ==========
-DEEPSEEK_API_KEY = st.secrets["DEEPSEEK_API_KEY"]
+def get_deepseek_api_key() -> str:
+    try:
+        return st.secrets.get("DEEPSEEK_API_KEY") or os.getenv("DEEPSEEK_API_KEY", "")
+    except Exception:
+        return os.getenv("DEEPSEEK_API_KEY", "")
+
+
+DEEPSEEK_API_KEY = get_deepseek_api_key()
 
 # 使用 Streamlit 的缓存机制，只初始化一次，且不阻塞启动
 @st.cache_resource
 def get_deepseek_client():
+    if not DEEPSEEK_API_KEY:
+        raise RuntimeError("DeepSeek API key is not configured.")
     return OpenAI(
         api_key=DEEPSEEK_API_KEY,
         base_url="https://api.deepseek.com"
@@ -306,10 +315,6 @@ End with an open question that invites them to push back or go deeper.
 # ========== CSS — Monet's Garden (Giverny) ==========
 st.markdown("""
 <style>
-    /* PERFORMANCE: Google Fonts 暂时禁用以实现极速启动
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+Garamond:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap');
-    */
-
     :root {
         --giverny-sage: #5f8a72;
         --giverny-sage-light: #8fb39a;
@@ -321,29 +326,33 @@ st.markdown("""
         --giverny-ink: #3a5248;
         --giverny-muted: #6a7f74;
         --step-h: 3.35rem;
-        --chat-gap: 1.25rem;
+        --chat-gap: 1.15rem;
     }
 
-    /* PERFORMANCE OPTIMIZED: Simple, fast-rendering background + System Fonts */
     .stApp {
-        background-color: #f5f8f6;
-        background-image: 
-            radial-gradient(at 20% 30%, rgba(158, 191, 204, 0.15), transparent 55%),
-            radial-gradient(at 80% 70%, rgba(200, 184, 216, 0.15), transparent 55%);
+        background:
+            radial-gradient(at 18% 20%, rgba(158, 191, 204, 0.24), transparent 54%),
+            radial-gradient(at 82% 72%, rgba(200, 184, 216, 0.2), transparent 56%),
+            linear-gradient(135deg, #f4f8f4 0%, #f8f3ea 50%, #f2f7f4 100%);
         background-attachment: fixed;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         color: var(--giverny-ink);
     }
 
+    .block-container {
+        padding-top: 0.8rem !important;
+        padding-bottom: 2.5rem !important;
+    }
+
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, rgba(250, 246, 239, 0.98), rgba(232, 242, 236, 0.96)) !important;
-        border-right: 1px solid rgba(95, 138, 114, 0.15) !important;
+        border-right: 1px solid rgba(95, 138, 114, 0.16) !important;
+        backdrop-filter: blur(8px);
     }
     [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] label {
         color: var(--giverny-ink) !important;
     }
 
-    /* Streamlit 1.57 — sage primary (override default red) */
     .stButton > button[kind="primary"],
     button[data-testid="stBaseButton-primary"],
     [data-testid="stBaseButton-primary"] {
@@ -351,13 +360,14 @@ st.markdown("""
         background-color: #5f8a72 !important;
         border: 1px solid rgba(255,255,255,0.35) !important;
         color: #fff !important;
-        box-shadow: 0 3px 12px rgba(77, 117, 96, 0.35) !important;
+        box-shadow: 0 4px 16px rgba(77, 117, 96, 0.28) !important;
     }
     .stButton > button[kind="primary"]:hover,
     button[data-testid="stBaseButton-primary"]:hover {
         background: linear-gradient(145deg, #456a58, #5f8a72) !important;
-        border-color: rgba(255,255,255,0.5) !important;
+        border-color: rgba(255,255,255,0.55) !important;
         color: #fff !important;
+        transform: translateY(-1px);
     }
     button[data-testid="stBaseButton-primary"] p,
     button[data-testid="stBaseButton-primary"] div {
@@ -370,6 +380,7 @@ st.markdown("""
         font-weight: 700;
         color: var(--giverny-ink);
         letter-spacing: 0.02em;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.7);
     }
     .monet-subtitle {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -378,41 +389,41 @@ st.markdown("""
         font-style: italic;
     }
     .monet-badge {
-        background: linear-gradient(135deg, rgba(255,252,248,0.85), rgba(232,245,238,0.75));
+        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.82));
         border: 1px solid rgba(95, 138, 114, 0.22);
         border-radius: 18px;
         padding: 10px 18px;
-        box-shadow: 0 4px 20px rgba(58, 82, 72, 0.08);
+        box-shadow: 0 8px 24px rgba(58, 82, 72, 0.08);
     }
     .monet-card {
-        background: linear-gradient(145deg, rgba(255,253,249,0.95), rgba(243,237,228,0.9));
-        border: 1px solid rgba(143, 179, 154, 0.22);
+        background: linear-gradient(145deg, rgba(255,253,249,0.96), rgba(243,237,228,0.92));
+        border: 1px solid rgba(143, 179, 154, 0.24);
         border-radius: 24px;
-        padding: 1.5rem 2rem;
-        margin: 1rem 0 1.5rem;
-        box-shadow: 0 8px 32px rgba(58, 82, 72, 0.05);
+        padding: 1.15rem 1.3rem;
+        margin: 0.5rem 0 1.1rem;
+        box-shadow: 0 10px 32px rgba(58, 82, 72, 0.06);
     }
     .login-shell {
-        max-width: 400px;
+        max-width: 430px;
         margin: 0 auto;
-        padding: 1.5rem 1.75rem 1.25rem;
-        background: linear-gradient(160deg, rgba(255,253,250,0.95), rgba(240,248,243,0.9));
-        border: 1px solid rgba(143, 179, 154, 0.35);
+        padding: 1.35rem 1.45rem 1.2rem;
+        background: linear-gradient(160deg, rgba(255,253,250,0.96), rgba(240,248,243,0.92));
+        border: 1px solid rgba(143, 179, 154, 0.32);
         border-radius: 24px;
-        box-shadow: 0 12px 40px rgba(58, 82, 72, 0.1);
+        box-shadow: 0 14px 44px rgba(58, 82, 72, 0.1);
     }
     .intro-text {
         text-align: center;
         color: var(--giverny-muted);
-        font-size: 0.92rem;
-        max-width: 520px;
+        font-size: 0.95rem;
+        max-width: 560px;
         margin: 0 auto;
-        line-height: 1.55;
+        line-height: 1.6;
     }
     .intro-icon-row {
         display: flex;
         justify-content: center;
-        gap: 1rem;
+        gap: 0.8rem;
         margin: 1.1rem 0;
         flex-wrap: wrap;
     }
@@ -420,11 +431,12 @@ st.markdown("""
         text-align: center;
         font-size: 0.76rem;
         color: var(--giverny-muted);
-        padding: 0.5rem 0.65rem;
+        padding: 0.55rem 0.7rem;
         border-radius: 14px;
-        background: rgba(255,255,255,0.45);
-        border: 1px solid rgba(143, 179, 154, 0.2);
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(143, 179, 154, 0.22);
         min-width: 76px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
     }
     .intro-icon-item span { font-size: 1.35rem; display: block; margin-bottom: 0.15rem; }
 
@@ -433,7 +445,7 @@ st.markdown("""
         font-size: 1.35rem;
         font-weight: 700;
         color: var(--giverny-ink);
-        margin: 2rem 0 1rem;
+        margin: 1.3rem 0 0.7rem;
         text-align: center;
         letter-spacing: 0.05em;
     }
@@ -441,17 +453,17 @@ st.markdown("""
         text-align: center;
         color: var(--giverny-muted);
         font-size: 0.95rem;
-        margin: 1.25rem 0 2rem;
+        margin: 1rem 0 1.2rem;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-style: italic;
     }
     .eval-pick-box {
-        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75));
+        background: linear-gradient(135deg, rgba(255,252,248,0.94), rgba(232,245,238,0.84));
         border: 1px solid rgba(95, 138, 114, 0.28);
         border-radius: 16px;
-        padding: 0.65rem 0.85rem 0.5rem;
-        margin: 0.5rem 0 0.75rem;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+        padding: 0.7rem 0.85rem 0.6rem;
+        margin: 0.4rem 0 0.8rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
     .eval-pick-title {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -461,32 +473,37 @@ st.markdown("""
         text-align: center;
         margin-bottom: 0.4rem;
     }
-    .util-bar {
-        display: flex;
-        justify-content: center;
-        gap: 0.75rem;
-        margin: 0.25rem 0 0.75rem;
+
+    .stTextInput > div > div,
+    .stTextArea > div > div {
+        background: linear-gradient(180deg, rgba(255,253,250,0.98), rgba(244,248,242,0.96)) !important;
+        border: 1.5px solid rgba(95, 138, 114, 0.6) !important;
+        border-radius: 14px !important;
+        box-shadow: inset 0 1px 3px rgba(58, 82, 72, 0.08), 0 4px 12px rgba(58, 82, 72, 0.05) !important;
+    }
+    .stTextInput input,
+    .stTextArea textarea {
+        color: #21362d !important;
+        font-weight: 600 !important;
+    }
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #7a8d84 !important;
+        font-weight: 500;
     }
 
-    .stTextInput > div > div {
-        background: rgba(255,253,250,0.85) !important;
-        border-radius: 12px !important;
-    }
-
-    /* Chat message container gap */
     div[data-testid="stChatMessage"] {
         margin-bottom: var(--chat-gap) !important;
     }
-
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
         background: linear-gradient(135deg, #f3f8f5 0%, #edf5f0 100%) !important;
         color: var(--giverny-ink) !important;
-        border: 1px solid rgba(143, 179, 154, 0.2) !important;
+        border: 1px solid rgba(143, 179, 154, 0.22) !important;
         border-radius: 20px 20px 4px 20px !important;
-        padding: 1.15rem 1.4rem !important;
-        max-width: 85% !important;
+        padding: 1.1rem 1.3rem !important;
+        max-width: 88% !important;
         margin-left: auto !important;
-        box-shadow: 0 4px 15px rgba(58, 82, 72, 0.05) !important;
+        box-shadow: 0 5px 16px rgba(58, 82, 72, 0.05) !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
         background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(250,248,245,0.96)) !important;
@@ -494,23 +511,40 @@ st.markdown("""
         border-radius: 20px 20px 20px 4px !important;
         color: var(--giverny-ink) !important;
         max-width: 96% !important;
-        padding: 1.4rem 1.75rem !important;
-        box-shadow: 0 4px 20px rgba(58, 82, 72, 0.04) !important;
+        padding: 1.2rem 1.4rem !important;
+        box-shadow: 0 5px 18px rgba(58, 82, 72, 0.04) !important;
         line-height: 1.65 !important;
     }
     div[data-testid="stChatMessage"] .stMarkdown {
         line-height: 1.65 !important;
     }
-    [data-testid="stChatInput"] {
-        border-radius: 16px !important;
-        border-color: rgba(95, 138, 114, 0.35) !important;
-        background: rgba(255,253,250,0.9) !important;
+    div[data-testid="stChatInput"] {
+        border-radius: 18px !important;
+        border: 1.5px solid rgba(95, 138, 114, 0.68) !important;
+        background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(242,248,243,0.96)) !important;
+        box-shadow: 0 8px 24px rgba(58, 82, 72, 0.08) !important;
+        padding: 0.25rem 0.3rem 0.25rem 0.35rem !important;
+    }
+    div[data-testid="stChatInput"] textarea {
+        color: #21362d !important;
+        font-weight: 600 !important;
+        min-height: 3rem !important;
+    }
+    div[data-testid="stChatInput"] textarea::placeholder {
+        color: #7c9186 !important;
+        font-weight: 500;
+    }
+    div[data-testid="stChatInput"] button {
+        border-radius: 999px !important;
+        background: linear-gradient(145deg, #4d7560, #6d9a7e) !important;
+        color: #fff !important;
+        border: none !important;
     }
     hr {
         border: none;
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(143,179,154,0.5), transparent);
-        margin: 0.5rem 0;
+        margin: 0.45rem 0;
     }
     #MainMenu, footer, header { visibility: hidden; }
 
@@ -518,6 +552,57 @@ st.markdown("""
     .st-key-btn_login_start [data-testid="stBaseButton-primary"] {
         border-radius: 20px !important;
         min-height: 2.5rem !important;
+    }
+
+    @media (max-width: 768px) {
+        .block-container {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+        .monet-title {
+            font-size: 1.7rem;
+        }
+        .monet-subtitle {
+            font-size: 0.95rem;
+        }
+        .monet-card {
+            padding: 1rem 1rem 0.95rem;
+        }
+        .login-shell {
+            max-width: 100%;
+            padding: 1rem 1rem 1.05rem;
+        }
+        .intro-icon-item {
+            flex: 1 1 calc(50% - 0.45rem);
+            min-width: 0;
+        }
+        div:has(> #srl-step-grid-marker) + div [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 0.45rem !important;
+        }
+        div:has(> #srl-step-grid-marker) + div [data-testid="column"] {
+            flex: 0 0 calc(50% - 0.25rem) !important;
+            max-width: calc(50% - 0.25rem) !important;
+        }
+        .step-flow-caption {
+            font-size: 0.86rem;
+        }
+        [data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
+            max-width: 100% !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .monet-title {
+            font-size: 1.45rem;
+        }
+        .monet-steps-header {
+            font-size: 1.1rem;
+            margin-top: 1.1rem;
+        }
+        .intro-icon-item {
+            flex-basis: 100%;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -539,11 +624,14 @@ def init_session_state():
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
         st.session_state.eval_score_framework = "cet"
-        st.session_state.completed_steps = set()  # 新增：记录已完成的步骤
+        st.session_state.completed_steps = set()  # 记录已完成的步骤
+        st.session_state.show_draft_choice = False # 新增：是否显示 Draft 分支选择
     elif st.session_state.get("current_step") == "monitoring":
         st.session_state.current_step = "draft"
     if "completed_steps" not in st.session_state: # 兼容旧数据
         st.session_state.completed_steps = set()
+    if "show_draft_choice" not in st.session_state:
+        st.session_state.show_draft_choice = False
 
 def get_system_prompt(step: str, eval_mode: str = "no_score",
                       score_framework: str = "cet") -> str:
@@ -785,10 +873,11 @@ def show_login_page():
     # Use columns to center the login form
     _, col_login, _ = st.columns([1, 2, 1])
     with col_login:
-        with st.container(border=True):
+        st.markdown('<div class="login-shell">', unsafe_allow_html=True)
+        with st.container():
             st.markdown("##### Sign in to start")
-            email = st.text_input("Email", placeholder="", key="login_email")
-            user_name = st.text_input("Your name", placeholder="", key="login_name")
+            email = st.text_input("Email", placeholder="Enter your email", key="login_email")
+            user_name = st.text_input("Your name", placeholder="Enter your name", key="login_name")
             round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
             login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
             if login_clicked:
@@ -799,6 +888,7 @@ def show_login_page():
                 else:
                     st.warning("Please enter your email and name.")
             st.caption("Your writing is saved automatically after each message.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ========== Main App ==========
 def main_app():
@@ -806,19 +896,21 @@ def main_app():
     round_label = round_display(st.session_state.test_round)
 
     st.markdown(f"""
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.25rem;">
-        <div>
-            <div class="monet-title" style="text-align:left;font-size:1.75rem;margin:0;">
-                ✍️ SRL Writing Coach
+    <div class="monet-card" style="margin-top:0.2rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+            <div>
+                <div class="monet-title" style="text-align:left;font-size:1.7rem;margin:0;">
+                    ✍️ SRL Writing Coach
+                </div>
+                <div class="monet-subtitle" style="text-align:left;margin:0.2rem 0 0;">
+                    Self-Regulated Learning · Plan → Draft → Evaluate → Interact
+                </div>
             </div>
-            <div class="monet-subtitle" style="text-align:left;margin:0;">
-                Self-Regulated Learning · Plan → Draft → Evaluate → Interact
+            <div class="monet-badge" style="text-align:right;">
+                <div style="font-size:0.92rem;font-weight:600;">{st.session_state.user_name}</div>
+                <div style="font-size:0.72rem;opacity:0.85;">{st.session_state.user_id}</div>
+                <div style="font-size:0.72rem;opacity:0.85;">{round_label}</div>
             </div>
-        </div>
-        <div class="monet-badge" style="text-align:right;">
-            <div style="font-size:0.92rem;font-weight:600;">{st.session_state.user_name}</div>
-            <div style="font-size:0.72rem;opacity:0.85;">{st.session_state.user_id}</div>
-            <div style="font-size:0.72rem;opacity:0.85;">{round_label}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -880,20 +972,22 @@ def main_app():
             st.session_state.current_step, eval_mode, framework
         )
         messages = [{"role": "system", "content": system}]
-        for m in st.session_state.messages[-15:]:
+        for m in st.session_state.messages[-10:]:
             messages.append({"role": m["role"], "content": m["content"]})
         messages.append({"role": "user", "content": user_input})
         try:
-            client = get_deepseek_client() # 只有真的要调用 AI 时才初始化连接
+            client = get_deepseek_client()
             resp = client.chat.completions.create(
                 model="deepseek-chat",
                 messages=messages,
-                temperature=0.7,
-                max_tokens=1500,
-                timeout=60 # Add timeout to prevent indefinite hanging
+                temperature=0.6,
+                max_tokens=900,
+                timeout=45,
             )
             return resp.choices[0].message.content
         except Exception as e:
+            if "API key" in str(e).lower() or "not configured" in str(e).lower():
+                return "⚠️ The DeepSeek API key is not configured yet. Please add it in Streamlit Cloud Secrets or set the environment variable before using the coach."
             return f"❌ AI Response Timeout or Error: {str(e)}. Please try again."
 
     def handle_input(eval_mode: str = "no_score"):
@@ -975,13 +1069,31 @@ def main_app():
             )
             handle_input()
             return
+        # 显示分支选择界面
+        st.session_state.show_draft_choice = True
+        st.session_state.show_eval_menu = False
+        st.session_state.show_eval_score_menu = False
+
+    def action_draft_has_idea():
+        # 用户已有思路：走原来的流程
+        st.session_state.show_draft_choice = False
         text = last_user_writing()
         if text and len(text) > 30:
-            st.session_state.user_input = f"Step 2 — Draft. Please help me self-check this writing:\n\n{text}"
+            st.session_state.user_input = f"Step 2 — Draft. I have an idea for my topic. Please help me self-check this writing:\n\n{text}"
         else:
             st.session_state.user_input = (
-                "Step 2 — Draft. I'm ready to draft and self-check my writing. Please guide me."
+                "Step 2 — Draft. I have a clear topic idea now. Please guide me through the drafting and self-checking process."
             )
+        handle_input()
+
+    def action_draft_no_idea():
+        # 用户没有思路：给出 CET-4 真题风格的 Topic 建议
+        st.session_state.show_draft_choice = False
+        st.session_state.user_input = (
+            "Step 2 — Draft. I have NO IDEA what to write about. "
+            "Please suggest 3-4 specific CET-4 style writing topics (like the 2026 December exam style: campus life, robots on campus, research projects, making campus life easier). "
+            "Then help me pick one and start drafting."
+        )
         handle_input()
 
     def action_open_evaluation():
@@ -1048,6 +1160,7 @@ def main_app():
         st.session_state.plan_in_progress = False
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
+        st.session_state.show_draft_choice = False # 重置 Draft 选择
         st.session_state.completed_steps = set()  # 清空完成记录
         st.session_state.messages.append({
             "role": "assistant",
@@ -1091,6 +1204,34 @@ def main_app():
         render_step_button("evaluating", "📊", action_open_evaluation)
     with c4:
         render_step_button("interaction", "💬", action_interaction)
+
+    # Draft 分支选择界面
+    if st.session_state.show_draft_choice and cur == "draft":
+        st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="eval-pick-title">Step 2 — Let\'s start writing!</div>',
+            unsafe_allow_html=True,
+        )
+        d1, d2 = st.columns(2, gap="small")
+        with d1:
+            st.button(
+                "✨ I have an idea",
+                use_container_width=True,
+                on_click=action_draft_has_idea,
+                key="btn_draft_has_idea",
+                type="primary",
+            )
+            st.caption("Great! Let's refine it together.")
+        with d2:
+            st.button(
+                "🤷 I have no idea",
+                use_container_width=True,
+                on_click=action_draft_no_idea,
+                key="btn_draft_no_idea",
+                type="secondary",
+            )
+            st.caption("No worries! I'll suggest some CET-4 topics.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     if st.session_state.show_eval_menu and cur == "evaluating":
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
