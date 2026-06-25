@@ -2,7 +2,13 @@
 
 A polished AI-powered writing coach designed to support English writing learning through the lens of Self-Regulated Learning (SRL).
 
-## Project Overview
+<p align="center">
+  <img src="https://img.shields.io/badge/Streamlit-APP-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white" />
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/AI-Coaching-6A5ACD?style=for-the-badge" />
+</p>
+
+## ✨ Project Overview
 This project combines conversational AI, writing pedagogy, and a friendly user interface to help students move through a structured writing process:
 
 1. Plan their writing goals
@@ -12,30 +18,46 @@ This project combines conversational AI, writing pedagogy, and a friendly user i
 
 The app is designed to be supportive, encouraging, and practical rather than simply giving answers.
 
-## Why this project matters
+## 🌐 Live Demo
+Try the deployed version here:
+
+- Live App: https://srl-writing-coach-pt2eguurxvxp9hkwe99ggc.streamlit.app
+
+## 🎯 Why this project matters
 Many students struggle not only with writing itself, but also with knowing how to organize ideas, revise, and reflect on their progress. This app aims to reduce that barrier by guiding learners step by step.
 
-## Core Features
+## 🌿 Core Features
 - Structured SRL workflow: Plan → Draft → Evaluate → Interact
 - AI coaching for writing support and self-monitoring
 - Rubric-based evaluation for CET, IELTS, TOEFL, and creative writing
 - Mobile-friendly and visually refined UI
 - Local session saving and optional Supabase logging
 
-## Tech Stack
+## 🛠️ Tech Stack
 - Python
 - Streamlit
 - OpenAI-compatible API (DeepSeek)
 - Requests
 - JSON / local file storage
 
-## Project Structure
+## 📁 Project Structure
 - `srl_coach_ai.py` — main application
 - `requirements.txt` — Python dependencies
 - `README.md` — project guide and deployment instructions
 - `.gitignore` — files excluded from GitHub
 
-## How to Run Locally
+## 📸 Showcase
+You can add screenshots of the app here later to make the project look more impressive on GitHub.
+
+Example layout:
+
+```md
+![Login Page](images/login.png)
+![Main Coach Interface](images/main.png)
+![Draft Flow](images/draft.png)
+```
+
+## ▶️ How to Run Locally
 
 ### 1. Install Python
 Make sure Python 3 is installed on your system.
@@ -74,7 +96,7 @@ streamlit run srl_coach_ai.py
 
 Then open the local URL shown in the terminal.
 
-## How to Deploy on Streamlit Cloud
+## 🚀 How to Deploy on Streamlit Cloud
 
 ### 1. Push the project to GitHub
 If you are new to GitHub, create an account first at https://github.com.
@@ -110,17 +132,17 @@ DEEPSEEK_API_KEY = your_deepseek_api_key
 ### 3. Launch the app
 After deployment, Streamlit will give you a public URL.
 
-## Important Notes
+## ⚠️ Important Notes
 - The AI features require a valid DeepSeek API key.
 - If the API key is missing, the app will display a friendly message instead of failing silently.
 - Local data is saved under the `srl_writing_data` folder.
 
-## Future Improvements
+## 🌱 Future Improvements
 Possible next steps include:
 - adding screenshots and a demo GIF
 - improving analytics and user progress tracking
 - supporting more writing genres and learning modes
 - adding multilingual support
 
-## Acknowledgments
+## 🙏 Acknowledgments
 This project was built as a practical AI-assisted learning tool focused on writing practice, reflection, and student growth.
