@@ -1055,6 +1055,9 @@ def main_app():
     def action_plan():
         set_step("plan")
         st.session_state.plan_in_progress = True
+        st.session_state.show_draft_choice = True
+        st.session_state.show_eval_menu = False
+        st.session_state.show_eval_score_menu = False
         st.session_state.user_input = (
             "Step 1 — Plan. Please help me set goals and create an outline for my English essay."
         )
@@ -1076,6 +1079,7 @@ def main_app():
 
     def action_draft_has_idea():
         # 用户已有思路：走原来的流程
+        set_step("draft")
         st.session_state.show_draft_choice = False
         text = last_user_writing()
         if text and len(text) > 30:
@@ -1088,6 +1092,7 @@ def main_app():
 
     def action_draft_no_idea():
         # 用户没有思路：给出 CET-4 真题风格的 Topic 建议
+        set_step("draft")
         st.session_state.show_draft_choice = False
         st.session_state.user_input = (
             "Step 2 — Draft. I have NO IDEA what to write about. "
@@ -1206,7 +1211,7 @@ def main_app():
         render_step_button("interaction", "💬", action_interaction)
 
     # Draft 分支选择界面
-    if st.session_state.show_draft_choice and cur == "draft":
+    if st.session_state.show_draft_choice and cur in {"plan", "draft"}:
         st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
         st.markdown(
             '<div class="eval-pick-title">After Plan — choose your next move</div>',
