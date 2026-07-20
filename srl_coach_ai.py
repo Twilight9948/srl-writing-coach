@@ -1316,10 +1316,36 @@ def inject_garden_app_layout_css() -> None:
     }
     div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
         align-items: stretch !important;
-        gap: 0.85rem !important;
+        gap: 0 !important;
         height: calc(100dvh - 1rem) !important;
         max-height: calc(100dvh - 1rem) !important;
         overflow: hidden !important;
+        position: relative !important;
+    }
+    /* Central divider spine between sidebar & chat */
+    div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"]::before {
+        content: '';
+        position: absolute;
+        left: 300px;
+        top: 2%;
+        bottom: 2%;
+        width: 6px;
+        transform: translateX(-3px);
+        border-radius: 999px;
+        background: linear-gradient(180deg,
+            rgba(30, 51, 41, 0.05) 0%,
+            #1e3329 6%,
+            #2f4a40 18%,
+            #1a2e24 50%,
+            #2f4a40 82%,
+            #1e3329 94%,
+            rgba(30, 51, 41, 0.05) 100%);
+        box-shadow:
+            0 0 0 1px rgba(30, 51, 41, 0.35),
+            2px 0 14px rgba(30, 51, 41, 0.18),
+            -2px 0 10px rgba(255, 255, 255, 0.45);
+        z-index: 10;
+        pointer-events: none;
     }
 
     /* ── Left rail — warm parchment panel ── */
@@ -1329,37 +1355,22 @@ def inject_garden_app_layout_css() -> None:
         height: 100% !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        padding: 0.55rem 1rem 0.55rem 0.35rem !important;
+        padding: 0.55rem 1.1rem 0.55rem 0.35rem !important;
         margin-right: 0 !important;
         background: linear-gradient(175deg,
-            rgba(252, 247, 238, 0.97) 0%,
-            rgba(238, 246, 240, 0.94) 55%,
-            rgba(244, 238, 248, 0.9) 100%) !important;
-        border: 1px solid rgba(107, 158, 143, 0.22) !important;
-        border-right: 4px solid rgba(61, 107, 86, 0.55) !important;
-        border-radius: 20px 0 0 20px !important;
-        box-shadow:
-            inset -1px 0 0 rgba(255, 255, 255, 0.65),
-            6px 0 28px rgba(47, 74, 64, 0.07) !important;
+            rgba(252, 247, 238, 0.98) 0%,
+            rgba(238, 246, 240, 0.96) 55%,
+            rgba(244, 238, 248, 0.92) 100%) !important;
+        border: 1px solid rgba(107, 158, 143, 0.18) !important;
+        border-right: none !important;
+        border-radius: 18px 0 0 18px !important;
+        box-shadow: inset -8px 0 16px -12px rgba(47, 74, 64, 0.08) !important;
         scrollbar-width: thin;
         position: relative !important;
+        z-index: 1 !important;
     }
     [data-testid="column"]:has(#studio-column-marker)::after {
-        content: '';
-        position: absolute;
-        top: 8%;
-        right: -0.45rem;
-        width: 3px;
-        height: 84%;
-        border-radius: 999px;
-        background: linear-gradient(180deg,
-            rgba(139, 184, 212, 0.0),
-            rgba(107, 158, 143, 0.75) 20%,
-            rgba(61, 107, 86, 0.85) 50%,
-            rgba(200, 184, 216, 0.65) 80%,
-            rgba(139, 184, 212, 0.0));
-        pointer-events: none;
-        z-index: 2;
+        display: none !important;
     }
 
     .studio-hero {
@@ -1471,24 +1482,22 @@ def inject_garden_app_layout_css() -> None:
     [data-testid="column"]:has(#studio-column-marker) .stProgress { margin-bottom: 0.25rem !important; }
     [data-testid="column"]:has(#studio-column-marker) .stProgress p { font-size: 0.68rem !important; }
 
-    /* ── Right chat column — cool lily panel ── */
+    /* ── Right chat column — clean conversation panel ── */
     [data-testid="column"]:has(#chat-column-marker) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
         height: 100% !important;
         overflow: hidden !important;
-        padding: 0.45rem 0.55rem 0.45rem 0.75rem !important;
-        margin-left: 0.15rem !important;
+        padding: 0.45rem 0.55rem 0.45rem 1.05rem !important;
+        margin-left: 0.55rem !important;
         background: linear-gradient(168deg,
-            rgba(255, 253, 250, 0.96) 0%,
-            rgba(242, 250, 246, 0.92) 45%,
-            rgba(248, 242, 252, 0.88) 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.72) !important;
-        border-left: 2px solid rgba(107, 158, 143, 0.18) !important;
-        border-radius: 0 22px 22px 0 !important;
-        box-shadow:
-            inset 1px 0 0 rgba(255, 255, 255, 0.85),
-            var(--monet-shadow-soft) !important;
+            rgba(248, 252, 250, 0.98) 0%,
+            rgba(242, 250, 246, 0.95) 100%) !important;
+        border: 1px solid rgba(47, 74, 64, 0.1) !important;
+        border-left: none !important;
+        border-radius: 0 18px 18px 0 !important;
+        box-shadow: inset 8px 0 18px -14px rgba(30, 51, 41, 0.06) !important;
+        z-index: 1 !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
         height: 100% !important;
@@ -1499,48 +1508,78 @@ def inject_garden_app_layout_css() -> None:
         gap: 0 !important;
     }
 
-    /* Scrollable message area only */
+    /* Scrollable message area — visually nested under header */
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
         flex: 1 1 auto !important;
         min-height: 0 !important;
         overflow: hidden !important;
-        border: none !important;
-        background: transparent !important;
-        margin-bottom: 0.25rem !important;
+        border: 1px solid rgba(47, 74, 64, 0.14) !important;
+        border-top: none !important;
+        border-radius: 0 0 14px 14px !important;
+        background: rgba(255, 253, 250, 0.88) !important;
+        margin-bottom: 0.35rem !important;
+        box-shadow: inset 0 2px 8px rgba(47, 74, 64, 0.04) !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] > div {
         overflow-y: auto !important;
+        padding: 0.65rem 0.5rem 0.45rem !important;
         scrollbar-width: thin;
-        scrollbar-color: rgba(107,158,143,0.35) transparent;
+        scrollbar-color: rgba(47, 74, 64, 0.35) transparent;
     }
 
+    /* Writing Studio — dark toolbar, clearly separate from chat */
+    div:has(> .chat-studio-header) {
+        flex-shrink: 0 !important;
+        margin-bottom: 0 !important;
+    }
     .chat-studio-header {
         flex-shrink: 0;
-        margin-bottom: 0.35rem;
-        padding: 0.55rem 0.85rem;
-        border-radius: 16px;
-        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75));
-        border: 1px solid rgba(255,255,255,0.6);
+        margin-bottom: 0 !important;
+        padding: 0.7rem 1rem 0.75rem;
+        border-radius: 14px 14px 0 0;
+        background: linear-gradient(128deg, #1e3329 0%, #2f4a40 38%, #3d6b56 100%);
+        border: 1px solid rgba(30, 51, 41, 0.55);
+        border-bottom: 2px solid rgba(30, 51, 41, 0.75);
+        box-shadow: 0 6px 20px rgba(30, 51, 41, 0.22);
+        position: relative;
+    }
+    .chat-studio-header::after {
+        content: 'Conversation';
+        position: absolute;
+        right: 1rem;
+        bottom: 0.55rem;
+        font-size: 0.58rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.42);
     }
     .chat-studio-header .step-pill {
         display: inline-block;
-        padding: 0.2rem 0.65rem;
+        padding: 0.22rem 0.7rem;
         border-radius: 999px;
-        background: rgba(107,158,143,0.12);
-        font-size: 0.62rem;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        font-size: 0.6rem;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: var(--giverny-pond);
+        color: rgba(255, 255, 255, 0.88);
     }
     .chat-studio-header h2 {
         font-family: var(--font-display);
-        font-size: 1.45rem;
+        font-size: 1.55rem;
         font-weight: 600;
-        margin: 0.2rem 0 0.05rem;
-        color: var(--giverny-ink);
+        margin: 0.28rem 0 0.08rem;
+        color: #faf6ef;
+        letter-spacing: 0.01em;
     }
-    .chat-studio-sub { font-size: 0.76rem; color: var(--giverny-muted); font-style: italic; margin: 0; }
+    .chat-studio-sub {
+        font-size: 0.74rem;
+        color: rgba(255, 255, 255, 0.62);
+        font-style: italic;
+        margin: 0;
+    }
 
     /* Footer dock — never scroll away; follow buttons sit above input */
     [data-testid="column"]:has(#chat-column-marker) div:has(> #chat-footer-dock-marker) {
@@ -1598,7 +1637,29 @@ def inject_garden_app_layout_css() -> None:
     }
 
     [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
-        margin-bottom: 0.75rem !important;
+        margin-bottom: 0.85rem !important;
+    }
+    /* Agent — deep forest green bubble */
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+        background: linear-gradient(145deg, #2f5244 0%, #284539 45%, #1e3329 100%) !important;
+        border: 1px solid rgba(26, 46, 36, 0.65) !important;
+        border-radius: 20px 20px 20px 6px !important;
+        box-shadow: 0 4px 16px rgba(30, 51, 41, 0.22), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+        padding: 1rem 1.15rem !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stMarkdownContainer"],
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stMarkdownContainer"] p,
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stMarkdownContainer"] li,
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stMarkdownContainer"] strong,
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) [data-testid="stMarkdownContainer"] em {
+        color: #eef6f0 !important;
+    }
+    /* User — soft light green bubble */
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        background: linear-gradient(145deg, rgba(232,245,238,0.98), rgba(210,230,218,0.92)) !important;
+        border: 1px solid rgba(107,158,143,0.28) !important;
+        border-radius: 20px 20px 6px 20px !important;
+        box-shadow: 0 2px 10px rgba(47, 74, 64, 0.06) !important;
     }
     [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatInput"] {
         margin-top: 0 !important;
@@ -2131,7 +2192,7 @@ def main_app():
         <div class="chat-studio-header">
             <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
             <h2>Writing Studio</h2>
-            <p class="chat-studio-sub">Step buttons &amp; options stay below — type anytime</p>
+            <p class="chat-studio-sub">Scroll messages above · controls &amp; input stay below</p>
         </div>
         """, unsafe_allow_html=True)
 
