@@ -4,8 +4,16 @@ from datetime import datetime
 import random
 import json
 import os
-import requests
+import io
+import csv
 import threading
+
+st.set_page_config(
+    page_title="SRL Writing Coach",
+    page_icon="🪷",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # ========== API Configuration ==========
 def get_deepseek_api_key() -> str:
@@ -27,9 +35,85 @@ def get_deepseek_client():
         base_url="https://api.deepseek.com"
     )
 
-# ========== Supabase 配置 ==========
-SUPABASE_URL = "https://kgzotpkprrmuaxiqqeaz.supabase.co"
-SUPABASE_KEY = "sb_publishable_r0YyELsdDWsVh8IcA80Nlw_eHpBe1lY"
+# ========== Google Sheets 配置（免费，替代 Supabase）==========
+# 在 Streamlit Cloud → Settings → Secrets 里配置 GOOGLE_SHEET_ID 和 google_sheets_credentials
+# 未配置时仍会用本地 JSON 保存，App 照常运行
+
+def _get_sheet_config():
+    try:
+        sheet_id = st.secrets.get("GOOGLE_SHEET_ID", "")
+        creds = st.secrets.get("google_sheets_credentials")
+        if sheet_id and creds:
+            return sheet_id, dict(creds)
+    except Exception:
+        pass
+    sheet_id = os.getenv("GOOGLE_SHEET_ID", "")
+    creds_json = os.getenv("GOOGLE_SHEETS_CREDENTIALS", "")
+    if sheet_id and creds_json:
+        return sheet_id, json.loads(creds_json)
+    return None, None
+
+
+@st.cache_resource
+def _get_google_worksheet():
+    import gspread
+    from google.oauth2.service_account import Credentials
+
+    sheet_id, creds_dict = _get_sheet_config()
+    if not sheet_id or not creds_dict:
+        return None
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+    gc = gspread.authorize(creds)
+    sheet = gc.open_by_key(sheet_id).sheet1
+    # 确保表头存在
+    expected_header = [
+        "student_id", "student_name", "test_round", "session_id",
+        "plan_completed", "monitoring_count", "message_count", "current_step",
+        "conversation", "created_at",
+    ]
+    if not sheet.get_all_values():
+        sheet.append_row(expected_header)
+    return sheet
+
+
+def load_all_sessions_from_sheets():
+    try:
+        sheet = _get_google_worksheet()
+        if sheet is None:
+            return []
+        rows = sheet.get_all_records()
+        return rows if rows else []
+    except Exception as e:
+        print(f"❌ Load sheets error: {e}")
+        return []
+
+
+def save_to_google_sheets(student_id, student_name, test_round, session_id,
+                          plan_completed, monitoring_count, message_count,
+                          current_step, conversation):
+    try:
+        sheet = _get_google_worksheet()
+        if sheet is None:
+            print("ℹ️ Google Sheets not configured — saved locally only.")
+            return False
+        trimmed = conversation[-30:] if len(conversation) > 30 else conversation
+        sheet.append_row([
+            student_id,
+            student_name,
+            test_round,
+            session_id,
+            plan_completed,
+            monitoring_count,
+            message_count,
+            current_step,
+            json.dumps(trimmed, ensure_ascii=False),
+            datetime.now().isoformat(),
+        ])
+        return True
+    except Exception as e:
+        print(f"❌ Google Sheets error: {e}")
+        return False
 
 STEPS = ("plan", "draft", "evaluating", "interaction")
 STEP_LABELS = {
@@ -45,37 +129,21 @@ STEP_BTN_LABEL = {
     "evaluating": "Evaluate",
     "interaction": "Interact",
 }
-ROUND_LABELS = {"round_1": "Round 1", "round_2": "Round 2"}
+ROUND_LABELS = {"round_1": "Session 1", "round_2": "Session 2", "round_3": "Session 3"}
 
+SESSION_GUIDE = {
+    "Session 1": "First visit — explore all four steps at your own pace.",
+    "Session 2": "Second visit — try to improve on what you learned last time.",
+    "Session 3": "Final visit — reflect on how your writing autonomy has grown.",
+}
 
-def save_to_supabase(student_id, student_name, test_round, plan_completed,
-                     monitoring_count, conversation):
-    try:
-        url = f"{SUPABASE_URL}/rest/v1/writing_sessions"
-        headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=minimal"
-        }
-        trimmed = conversation[-30:] if len(conversation) > 30 else conversation
-        data = {
-            "student_id": student_id,
-            "student_name": student_name,
-            "test_round": test_round,
-            "plan_completed": plan_completed,
-            "monitoring_count": monitoring_count,
-            "conversation": trimmed,
-            "created_at": datetime.now().isoformat()
-        }
-        resp = requests.post(url, headers=headers, json=data, timeout=10)
-        if resp.status_code not in (200, 201):
-            print(f"❌ Supabase error {resp.status_code}: {resp.text}")
-            return False
-        return True
-    except Exception as e:
-        print(f"❌ Supabase error: {e}")
-        return False
+STEP_TIPS = {
+    "plan": "Set your topic, thesis, and outline before you draft. The coach asks — it does not write for you.",
+    "draft": "Paste or type your writing here. Ask for feedback on logic, evidence, and language.",
+    "evaluating": "Choose feedback-only or a scored rubric (CET / IELTS / TOEFL / Creative).",
+    "interaction": "Reflect on your journey. You can agree or push back — both are valuable.",
+}
+
 
 # ========== Local Storage ==========
 DATA_DIR = "srl_writing_data"
@@ -112,15 +180,18 @@ def save_current_session():
         }
         save_conversation(st.session_state.user_id, session_data)
         
-        # Save to Supabase in a background thread to prevent UI blocking
+        # 同步到 Google Sheets（后台线程，不阻塞界面）
         thread = threading.Thread(
-            target=save_to_supabase,
+            target=save_to_google_sheets,
             kwargs={
                 "student_id": st.session_state.user_id,
                 "student_name": st.session_state.user_name,
                 "test_round": st.session_state.test_round,
+                "session_id": st.session_state.conversation_id,
                 "plan_completed": st.session_state.plan_completed,
                 "monitoring_count": st.session_state.monitoring_count,
+                "message_count": len(st.session_state.messages),
+                "current_step": st.session_state.current_step,
                 "conversation": st.session_state.messages,
             }
         )
@@ -312,36 +383,44 @@ After your diagnosis, invite the student to reflect critically:
 End with an open question that invites them to push back or go deeper.
 """
 
-# ========== CSS — Monet's Garden (Giverny) ==========
+# ========== CSS — Premium Monet Garden (nfmedipath-inspired) ==========
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+
     :root {
         --giverny-sage: #5f8a72;
         --giverny-sage-light: #8fb39a;
-        --giverny-pond: #9ebfcc;
+        --giverny-pond: #6b9e8f;
         --giverny-lavender: #c8b8d8;
         --giverny-rose: #ddb8c8;
         --giverny-cream: #faf6ef;
         --giverny-paper: #f3ede4;
         --giverny-ink: #3a5248;
         --giverny-muted: #6a7f74;
+        --font-display: 'Cormorant Garamond', Georgia, serif;
+        --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         --step-h: 3.35rem;
         --chat-gap: 1.15rem;
+        --glass: rgba(255, 253, 250, 0.72);
+        --glass-border: rgba(255, 255, 255, 0.65);
     }
 
     .stApp {
         background:
-            radial-gradient(at 18% 20%, rgba(158, 191, 204, 0.24), transparent 54%),
-            radial-gradient(at 82% 72%, rgba(200, 184, 216, 0.2), transparent 56%),
-            linear-gradient(135deg, #f4f8f4 0%, #f8f3ea 50%, #f2f7f4 100%);
+            radial-gradient(ellipse 80% 60% at 10% 15%, rgba(184, 212, 232, 0.35), transparent 55%),
+            radial-gradient(ellipse 70% 50% at 90% 25%, rgba(200, 184, 216, 0.28), transparent 50%),
+            radial-gradient(ellipse 60% 45% at 50% 90%, rgba(168, 197, 160, 0.22), transparent 55%),
+            linear-gradient(165deg, #faf7f2 0%, #f5f0e8 40%, #eef4f0 100%);
         background-attachment: fixed;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: var(--font-body);
         color: var(--giverny-ink);
     }
 
     .block-container {
-        padding-top: 0.8rem !important;
-        padding-bottom: 2.5rem !important;
+        padding-top: 1.2rem !important;
+        padding-bottom: 3rem !important;
+        max-width: 1180px !important;
     }
 
     [data-testid="stSidebar"] {
@@ -375,18 +454,116 @@ st.markdown("""
     }
 
     .monet-title {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-size: 2.35rem;
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 5vw, 3.2rem);
         font-weight: 700;
         color: var(--giverny-ink);
-        letter-spacing: 0.02em;
-        text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+        letter-spacing: 0.01em;
+        line-height: 1.15;
     }
     .monet-subtitle {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-family: var(--font-body);
         color: var(--giverny-muted);
         font-size: 1.05rem;
-        font-style: italic;
+        font-weight: 400;
+        letter-spacing: 0.02em;
+    }
+    .section-label {
+        font-family: var(--font-body);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--giverny-pond);
+        margin-bottom: 0.75rem;
+    }
+    .gradient-text {
+        background: linear-gradient(120deg, #4a735f 0%, #6b9e8f 45%, #8bb8d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .glass-panel {
+        background: var(--glass);
+        backdrop-filter: blur(20px) saturate(1.2);
+        -webkit-backdrop-filter: blur(20px) saturate(1.2);
+        border: 1px solid var(--glass-border);
+        border-radius: 28px;
+        box-shadow: 0 8px 40px rgba(58, 82, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.8);
+        padding: 1.75rem 2rem;
+    }
+    .hero-eyebrow {
+        display: inline-block;
+        padding: 0.35rem 1rem;
+        border-radius: 999px;
+        background: rgba(107, 158, 143, 0.12);
+        border: 1px solid rgba(107, 158, 143, 0.25);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--giverny-pond);
+        margin-bottom: 1.25rem;
+    }
+    .journey-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+        margin: 1.5rem 0;
+    }
+    .journey-card {
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(143, 179, 154, 0.2);
+        border-radius: 18px;
+        padding: 1rem 1.1rem;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .journey-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px rgba(58, 82, 72, 0.1);
+    }
+    .journey-card .j-num {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        font-weight: 600;
+        color: rgba(107, 158, 143, 0.35);
+        line-height: 1;
+        margin-bottom: 0.35rem;
+    }
+    .journey-card h4 {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+        color: var(--giverny-ink);
+    }
+    .journey-card p {
+        font-size: 0.78rem;
+        color: var(--giverny-muted);
+        margin: 0;
+        line-height: 1.45;
+    }
+    .trust-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1.25rem;
+        font-size: 0.8rem;
+        color: var(--giverny-muted);
+    }
+    .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in {
+        animation: fadeUp 0.7s ease-out forwards;
     }
     .monet-badge {
         background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.82));
@@ -396,21 +573,38 @@ st.markdown("""
         box-shadow: 0 8px 24px rgba(58, 82, 72, 0.08);
     }
     .monet-card {
-        background: linear-gradient(145deg, rgba(255,253,249,0.96), rgba(243,237,228,0.92));
-        border: 1px solid rgba(143, 179, 154, 0.24);
+        background: var(--glass);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
         border-radius: 24px;
-        padding: 1.15rem 1.3rem;
+        padding: 1.25rem 1.5rem;
         margin: 0.5rem 0 1.1rem;
-        box-shadow: 0 10px 32px rgba(58, 82, 72, 0.06);
+        box-shadow: 0 10px 40px rgba(58, 82, 72, 0.07);
     }
     .login-shell {
-        max-width: 430px;
-        margin: 0 auto;
-        padding: 1.35rem 1.45rem 1.2rem;
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .form-panel-inner {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 28px;
+        padding: 1.75rem 1.85rem;
+        box-shadow: 0 16px 48px rgba(58, 82, 72, 0.1);
+    }
+    .form-panel-inner h3 {
+        font-family: var(--font-display);
+        font-size: 1.65rem;
+        font-weight: 600;
+        margin: 0 0 0.25rem;
+        color: var(--giverny-ink);
+    }
+    .form-panel-inner .form-sub {
+        font-size: 0.88rem;
+        color: var(--giverny-muted);
+        margin-bottom: 1.25rem;
     }
     .intro-text {
         text-align: center;
@@ -431,23 +625,24 @@ st.markdown("""
         text-align: center;
         font-size: 0.76rem;
         color: var(--giverny-muted);
-        padding: 0.55rem 0.7rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.55);
+        padding: 0.85rem 0.75rem;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.6);
         border: 1px solid rgba(143, 179, 154, 0.22);
-        min-width: 76px;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+        min-width: 90px;
+        box-shadow: 0 4px 16px rgba(58, 82, 72, 0.05);
+        transition: transform 0.2s ease;
     }
+    .intro-icon-item:hover { transform: translateY(-2px); }
     .intro-icon-item span { font-size: 1.35rem; display: block; margin-bottom: 0.15rem; }
 
     .monet-steps-header {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-size: 1.35rem;
+        font-family: var(--font-display);
+        font-size: 1.75rem;
         font-weight: 700;
         color: var(--giverny-ink);
-        margin: 1.3rem 0 0.7rem;
+        margin: 1.5rem 0 0.85rem;
         text-align: center;
-        letter-spacing: 0.05em;
     }
     .step-flow-caption {
         text-align: center;
@@ -559,8 +754,11 @@ st.markdown("""
             padding-left: 0.75rem !important;
             padding-right: 0.75rem !important;
         }
+        .journey-grid {
+            grid-template-columns: 1fr !important;
+        }
         .monet-title {
-            font-size: 1.7rem;
+            font-size: 1.85rem;
         }
         .monet-subtitle {
             font-size: 0.95rem;
@@ -632,6 +830,14 @@ def init_session_state():
         st.session_state.completed_steps = set()
     if "show_draft_choice" not in st.session_state:
         st.session_state.show_draft_choice = False
+    if "research_authenticated" not in st.session_state:
+        st.session_state.research_authenticated = False
+
+def get_research_password() -> str:
+    try:
+        return st.secrets.get("RESEARCH_PASSWORD", "srl2026")
+    except Exception:
+        return os.getenv("RESEARCH_PASSWORD", "srl2026")
 
 def get_system_prompt(step: str, eval_mode: str = "no_score",
                       score_framework: str = "cet") -> str:
@@ -843,52 +1049,203 @@ def inject_step_button_styles(active_step: str) -> None:
 
 # ========== Login Page ==========
 def show_login_page():
+    col_hero, col_form = st.columns([1.15, 1], gap="large")
+
+    with col_hero:
+        st.markdown("""
+        <div class="animate-in">
+            <div class="hero-eyebrow">Self-Regulated Learning · Writing Garden</div>
+            <div class="monet-title" style="margin-bottom:0.75rem;">
+                Discover your voice<br>
+                <span class="gradient-text">in the writing garden</span>
+            </div>
+            <div class="monet-subtitle" style="max-width:520px;line-height:1.65;margin-bottom:0.5rem;">
+                An AI coach that guides — never writes for you. Move through four elegant stages
+                designed to build true writing autonomy.
+            </div>
+            <div class="journey-grid">
+                <div class="journey-card">
+                    <div class="j-num">01</div>
+                    <h4>Plan</h4>
+                    <p>Set goals, thesis, and outline through guided questions.</p>
+                </div>
+                <div class="journey-card">
+                    <div class="j-num">02</div>
+                    <h4>Draft</h4>
+                    <p>Write in your own words; self-monitor with the coach.</p>
+                </div>
+                <div class="journey-card">
+                    <div class="j-num">03</div>
+                    <h4>Evaluate</h4>
+                    <p>CET, IELTS, TOEFL, or creative rubric feedback.</p>
+                </div>
+                <div class="journey-card">
+                    <div class="j-num">04</div>
+                    <h4>Interact</h4>
+                    <p>Reflect, discuss, and grow your critical voice.</p>
+                </div>
+            </div>
+            <div class="trust-row">
+                <span class="trust-item">🪷 Monet-inspired design</span>
+                <span class="trust-item">🎓 SRL framework</span>
+                <span class="trust-item">✨ DeepSeek AI</span>
+                <span class="trust-item">🔒 Research ethics</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_form:
+        st.markdown('<div class="form-panel-inner">', unsafe_allow_html=True)
+        st.markdown(
+            '<h3>Begin your session</h3>'
+            '<p class="form-sub">Email and name only — then choose Session 1, 2, or 3.</p>',
+            unsafe_allow_html=True,
+        )
+        email = st.text_input("Email", placeholder="your@email.com", key="login_email")
+        user_name = st.text_input("Your name", placeholder="How should the coach call you?", key="login_name")
+        round_option = st.selectbox(
+            "Session", ["Session 1", "Session 2", "Session 3"], key="test_round_select"
+        )
+        st.markdown(
+            f'<p style="font-size:0.85rem;color:var(--giverny-muted);margin:0.5rem 0 1rem;'
+            f'padding:0.65rem 0.85rem;background:rgba(107,158,143,0.1);border-radius:12px;">'
+            f'💡 {SESSION_GUIDE.get(round_option, "")}</p>',
+            unsafe_allow_html=True,
+        )
+
+        with st.expander("How to use this coach (60 seconds)", expanded=False):
+            st.markdown("""
+            1. **Plan** — Goals and outline via guided questions  
+            2. **Draft** — Write in chat; ask for self-check feedback  
+            3. **Evaluate** — Rubric feedback or scored evaluation  
+            4. **Interact** — Reflect and discuss your progress  
+
+            The coach **never** writes your essay for you.  
+            Sessions are saved for academic research.
+            """)
+
+        consent = st.checkbox(
+            "I agree my session data may be used for academic research.",
+            key="login_consent",
+        )
+        login_clicked = st.button(
+            "Enter the garden →", use_container_width=True, type="primary", key="btn_login_start"
+        )
+        if login_clicked:
+            if not consent:
+                st.warning("Please check the research consent box to continue.")
+            elif email.strip() and user_name.strip():
+                round_map = {
+                    "Session 1": "round_1",
+                    "Session 2": "round_2",
+                    "Session 3": "round_3",
+                }
+                round_value = round_map[round_option]
+                do_login(email.strip(), user_name.strip(), round_value)
+                st.rerun()
+            else:
+                st.warning("Please enter your email and name.")
+        st.caption("Auto-saved after each message · Researcher: add ?research=1 to URL")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ========== Research Dashboard ==========
+def show_research_dashboard():
     st.markdown(
-        '<div class="monet-title" style="text-align:center;margin-top:0.5rem;">'
-        '✍️ SRL Writing Coach</div>',
+        '<div class="monet-title" style="text-align:center;">🔬 Research Dashboard</div>',
         unsafe_allow_html=True,
     )
     st.markdown(
         '<div class="monet-subtitle" style="text-align:center;">'
-        'Self-Regulated Learning · English writing with AI guidance</div>',
+        "Student session data · Google Sheets</div>",
         unsafe_allow_html=True,
     )
-    st.markdown("""
-    <div class="intro-text" style="max-width:640px;">
-        <p><strong>What is this?</strong> An AI writing coach built on <strong>Self-Regulated Learning (SRL)</strong>.
-        You move through four stages—<strong>Plan → Draft → Evaluate → Interact</strong>—so you set goals,
-        write in your own words, get rubric-based feedback, and reflect on your progress.</p>
-        <p><strong>Who is it for?</strong> University students practising English writing (essays, CET, IELTS, TOEFL,
-        or creative pieces). The coach asks questions and gives short feedback; it does <em>not</em> write the essay for you.</p>
-        <p><strong>Data:</strong> Your chats are saved automatically for research (Round 1 / Round 2).</p>
-    </div>
-    <div class="intro-icon-row">
-        <div class="intro-icon-item"><span>📋</span><strong>Plan</strong><br><small>Goals & outline</small></div>
-        <div class="intro-icon-item"><span>✍️</span><strong>Draft</strong><br><small>Write & self-check</small></div>
-        <div class="intro-icon-item"><span>📊</span><strong>Evaluate</strong><br><small>Rubric feedback</small></div>
-        <div class="intro-icon-item"><span>💬</span><strong>Interact</strong><br><small>Reflect & discuss</small></div>
-    </div>
-    """, unsafe_allow_html=True)
 
-    # Use columns to center the login form
-    _, col_login, _ = st.columns([1, 2, 1])
-    with col_login:
-        st.markdown('<div class="login-shell">', unsafe_allow_html=True)
-        with st.container():
-            st.markdown("##### Sign in to start")
-            email = st.text_input("Email", placeholder="Enter your email", key="login_email")
-            user_name = st.text_input("Your name", placeholder="Enter your name", key="login_name")
-            round_option = st.selectbox("Round", ["Round 1", "Round 2"], key="test_round_select")
-            login_clicked = st.button("Start", use_container_width=True, type="primary", key="btn_login_start")
-            if login_clicked:
-                if email.strip() and user_name.strip():
-                    round_value = "round_1" if round_option == "Round 1" else "round_2"
-                    do_login(email.strip(), user_name.strip(), round_value)
-                    st.rerun()
-                else:
-                    st.warning("Please enter your email and name.")
-            st.caption("Your writing is saved automatically after each message.")
-        st.markdown('</div>', unsafe_allow_html=True)
+    if not st.session_state.research_authenticated:
+        pwd = st.text_input("Research password", type="password", key="research_pwd")
+        if st.button("Enter dashboard", type="primary", key="btn_research_login"):
+            if pwd == get_research_password():
+                st.session_state.research_authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect password.")
+        st.caption("Set RESEARCH_PASSWORD in Streamlit Secrets. Default: srl2026")
+        return
+
+    rows = load_all_sessions_from_sheets()
+    if not rows:
+        st.warning(
+            "No data in Google Sheets yet — or Sheets is not configured. "
+            "See GOOGLE_SHEETS_SETUP.md"
+        )
+        if st.button("Back to student login"):
+            st.query_params.clear()
+            st.rerun()
+        return
+
+    st.success(f"Loaded **{len(rows)}** session records from Google Sheets.")
+
+    # Summary metrics
+    students = {r.get("student_id") for r in rows if r.get("student_id")}
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Unique students", len(students))
+    c2.metric("Total sessions", len(rows))
+    c3.metric("Session 1", sum(1 for r in rows if r.get("test_round") == "round_1"))
+    c4.metric("Session 2+3", sum(1 for r in rows if r.get("test_round") in ("round_2", "round_3")))
+
+    # Filter
+    student_ids = sorted(students)
+    selected = st.selectbox("Filter by student email", ["All"] + student_ids)
+    filtered = rows if selected == "All" else [r for r in rows if r.get("student_id") == selected]
+
+    # Table view
+    display_rows = []
+    for r in filtered:
+        display_rows.append({
+            "email": r.get("student_id", ""),
+            "name": r.get("student_name", ""),
+            "session": ROUND_LABELS.get(r.get("test_round", ""), r.get("test_round", "")),
+            "messages": r.get("message_count", ""),
+            "step": r.get("current_step", ""),
+            "plan_done": r.get("plan_completed", ""),
+            "draft_checks": r.get("monitoring_count", ""),
+            "saved_at": r.get("created_at", ""),
+        })
+    st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
+    # Conversation detail
+    st.markdown("#### Conversation detail")
+    for i, r in enumerate(reversed(filtered[-20:])):
+        label = (
+            f"{r.get('student_name', '?')} · "
+            f"{ROUND_LABELS.get(r.get('test_round', ''), '?')} · "
+            f"{r.get('created_at', '')[:19]}"
+        )
+        with st.expander(label):
+            try:
+                conv = json.loads(r.get("conversation", "[]"))
+                for msg in conv:
+                    role = "Student" if msg.get("role") == "user" else "Coach"
+                    st.markdown(f"**{role}:** {msg.get('content', '')}")
+            except Exception:
+                st.text(r.get("conversation", ""))
+
+    # CSV export
+    buf = io.StringIO()
+    if display_rows:
+        writer = csv.DictWriter(buf, fieldnames=display_rows[0].keys())
+        writer.writeheader()
+        writer.writerows(display_rows)
+    st.download_button(
+        "Download CSV",
+        buf.getvalue(),
+        file_name=f"srl_research_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime="text/csv",
+    )
+
+    if st.button("Exit dashboard"):
+        st.session_state.research_authenticated = False
+        st.query_params.clear()
+        st.rerun()
 
 # ========== Main App ==========
 def main_app():
@@ -896,25 +1253,42 @@ def main_app():
     round_label = round_display(st.session_state.test_round)
 
     st.markdown(f"""
-    <div class="monet-card" style="margin-top:0.2rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+    <div class="glass-panel" style="margin-top:0.2rem;margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
             <div>
-                <div class="monet-title" style="text-align:left;font-size:1.7rem;margin:0;">
-                    ✍️ SRL Writing Coach
+                <div class="section-label">SRL Writing Coach</div>
+                <div class="monet-title" style="font-size:clamp(1.5rem,3vw,2rem);margin:0;">
+                    🪷 Your writing garden
                 </div>
-                <div class="monet-subtitle" style="text-align:left;margin:0.2rem 0 0;">
-                    Self-Regulated Learning · Plan → Draft → Evaluate → Interact
+                <div class="monet-subtitle" style="margin-top:0.35rem;">
+                    Plan → Draft → Evaluate → Interact
                 </div>
             </div>
-            <div class="monet-badge" style="text-align:right;">
-                <div style="font-size:0.92rem;font-weight:600;">{st.session_state.user_name}</div>
-                <div style="font-size:0.72rem;opacity:0.85;">{st.session_state.user_id}</div>
-                <div style="font-size:0.72rem;opacity:0.85;">{round_label}</div>
+            <div class="monet-badge" style="text-align:right;min-width:140px;">
+                <div style="font-size:0.95rem;font-weight:600;">{st.session_state.user_name}</div>
+                <div style="font-size:0.72rem;opacity:0.85;margin-top:0.15rem;">{st.session_state.user_id}</div>
+                <div style="font-size:0.72rem;color:var(--giverny-pond);font-weight:600;margin-top:0.2rem;">{round_label}</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
     st.divider()
+
+    # Step progress bar
+    step_keys = list(STEPS)
+    completed = st.session_state.completed_steps
+    progress = len(completed) / len(step_keys)
+    st.progress(progress, text=f"Your garden path: {len(completed)}/{len(step_keys)} steps touched")
+
+    # Current step guidance
+    tip = STEP_TIPS.get(cur, "")
+    st.markdown(f"""
+    <div class="glass-panel" style="padding:1rem 1.25rem;margin-bottom:0.85rem;
+        background:linear-gradient(135deg,rgba(255,252,248,0.85),rgba(232,245,238,0.75));">
+        <div class="section-label" style="margin-bottom:0.4rem;">Current step · {STEP_LABELS.get(cur, cur)}</div>
+        <p style="margin:0;font-size:0.92rem;color:var(--giverny-ink);line-height:1.55;">{tip}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     with st.sidebar:
         st.markdown("""
@@ -1180,7 +1554,12 @@ def main_app():
     step_num = {s: i + 1 for i, s in enumerate(STEPS)}
     cur = st.session_state.current_step
 
-    st.markdown('<p class="monet-steps-header">🌿 The four steps in your garden</p>', unsafe_allow_html=True)
+    st.markdown('<p class="monet-steps-header">🌿 Your four-step journey</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="step-flow-caption" style="margin-top:-0.5rem;">'
+        'Tap a step to begin — the coach adapts to where you are</p>',
+        unsafe_allow_html=True,
+    )
     st.markdown('<div id="srl-step-grid-marker" aria-hidden="true"></div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4, gap="small")
 
@@ -1313,7 +1692,10 @@ def main_app():
 
 # ========== Run ==========
 init_session_state()
-if st.session_state.logged_in:
+
+if st.query_params.get("research") == "1":
+    show_research_dashboard()
+elif st.session_state.logged_in:
     main_app()
 else:
     show_login_page()
