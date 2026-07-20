@@ -1287,6 +1287,18 @@ def render_journey_timeline(current_step: str, completed: set, plan_completed: b
     return "".join(parts)
 
 
+def chat_messages_scroll_height(cur: str) -> int:
+    """Shrink the message pane when follow-up buttons appear so input stays visible."""
+    height = 390
+    if st.session_state.show_draft_choice and cur == "draft":
+        height -= 88
+    if st.session_state.show_eval_menu and cur == "evaluating":
+        height -= 72
+        if st.session_state.show_eval_score_menu:
+            height -= 44
+    return max(170, height)
+
+
 def inject_garden_app_layout_css() -> None:
     """Two-column studio: left fixed rail, right = scrollable chat + docked footer."""
     inject_css_block("""
@@ -1304,33 +1316,93 @@ def inject_garden_app_layout_css() -> None:
     }
     div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
         align-items: stretch !important;
-        gap: 0 !important;
+        gap: 0.85rem !important;
         height: calc(100dvh - 1rem) !important;
         max-height: calc(100dvh - 1rem) !important;
         overflow: hidden !important;
     }
 
-    /* ── Left rail ── */
+    /* ── Left rail — warm parchment panel ── */
     [data-testid="column"]:has(#studio-column-marker) {
         flex: 0 0 300px !important;
         max-width: 300px !important;
         height: 100% !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        padding: 0.4rem 0.9rem 0.4rem 0.25rem !important;
-        border-right: 3px solid rgba(74, 115, 95, 0.5) !important;
-        box-shadow: 4px 0 20px rgba(47, 74, 64, 0.05) !important;
+        padding: 0.55rem 1rem 0.55rem 0.35rem !important;
+        margin-right: 0 !important;
+        background: linear-gradient(175deg,
+            rgba(252, 247, 238, 0.97) 0%,
+            rgba(238, 246, 240, 0.94) 55%,
+            rgba(244, 238, 248, 0.9) 100%) !important;
+        border: 1px solid rgba(107, 158, 143, 0.22) !important;
+        border-right: 4px solid rgba(61, 107, 86, 0.55) !important;
+        border-radius: 20px 0 0 20px !important;
+        box-shadow:
+            inset -1px 0 0 rgba(255, 255, 255, 0.65),
+            6px 0 28px rgba(47, 74, 64, 0.07) !important;
         scrollbar-width: thin;
+        position: relative !important;
+    }
+    [data-testid="column"]:has(#studio-column-marker)::after {
+        content: '';
+        position: absolute;
+        top: 8%;
+        right: -0.45rem;
+        width: 3px;
+        height: 84%;
+        border-radius: 999px;
+        background: linear-gradient(180deg,
+            rgba(139, 184, 212, 0.0),
+            rgba(107, 158, 143, 0.75) 20%,
+            rgba(61, 107, 86, 0.85) 50%,
+            rgba(200, 184, 216, 0.65) 80%,
+            rgba(139, 184, 212, 0.0));
+        pointer-events: none;
+        z-index: 2;
     }
 
-    .studio-hero { margin-bottom: 0.35rem; }
+    .studio-hero {
+        margin-bottom: 0.4rem;
+        padding-bottom: 0.45rem;
+        border-bottom: 1px solid rgba(143, 179, 154, 0.2);
+    }
+    .studio-hero .section-label {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.2em !important;
+        margin-bottom: 0.35rem !important;
+    }
     .studio-hero-title {
         font-family: var(--font-display);
-        font-size: 1.65rem !important;
-        font-weight: 700;
-        line-height: 1.08;
+        font-size: 0 !important;
+        line-height: 1 !important;
+        margin: 0.15rem 0 0.25rem !important;
+    }
+    .studio-hero-title .hero-line1 {
+        display: block;
+        font-size: 1.35rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
         color: var(--giverny-ink);
-        margin: 0.1rem 0 0.2rem;
+        line-height: 1.15;
+    }
+    .studio-hero-title .hero-line2 {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        line-height: 1.05;
+        margin-top: 0.05rem;
+    }
+    .hero-title-rule {
+        height: 2px;
+        margin: 0.35rem 0 0.15rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg,
+            rgba(61, 107, 86, 0.65),
+            rgba(139, 184, 212, 0.45),
+            rgba(200, 184, 216, 0.35),
+            transparent);
     }
     .studio-hero-sub {
         font-size: 0.76rem;
@@ -1399,17 +1471,24 @@ def inject_garden_app_layout_css() -> None:
     [data-testid="column"]:has(#studio-column-marker) .stProgress { margin-bottom: 0.25rem !important; }
     [data-testid="column"]:has(#studio-column-marker) .stProgress p { font-size: 0.68rem !important; }
 
-    /* ── Right chat column ── */
+    /* ── Right chat column — cool lily panel ── */
     [data-testid="column"]:has(#chat-column-marker) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
         height: 100% !important;
         overflow: hidden !important;
-        padding: 0.3rem 0.45rem 0.3rem 0.9rem !important;
-        background: linear-gradient(155deg, rgba(255,253,250,0.65), rgba(240,248,244,0.45)) !important;
-        border: 1px solid rgba(255,255,255,0.55) !important;
-        border-radius: 24px !important;
-        box-shadow: var(--monet-shadow-soft) !important;
+        padding: 0.45rem 0.55rem 0.45rem 0.75rem !important;
+        margin-left: 0.15rem !important;
+        background: linear-gradient(168deg,
+            rgba(255, 253, 250, 0.96) 0%,
+            rgba(242, 250, 246, 0.92) 45%,
+            rgba(248, 242, 252, 0.88) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.72) !important;
+        border-left: 2px solid rgba(107, 158, 143, 0.18) !important;
+        border-radius: 0 22px 22px 0 !important;
+        box-shadow:
+            inset 1px 0 0 rgba(255, 255, 255, 0.85),
+            var(--monet-shadow-soft) !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
         height: 100% !important;
@@ -1463,38 +1542,59 @@ def inject_garden_app_layout_css() -> None:
     }
     .chat-studio-sub { font-size: 0.76rem; color: var(--giverny-muted); font-style: italic; margin: 0; }
 
-    /* Footer dock: options + step buttons + input — always visible */
-    div:has(> #chat-footer-dock-marker) {
+    /* Footer dock — never scroll away; follow buttons sit above input */
+    [data-testid="column"]:has(#chat-column-marker) div:has(> #chat-footer-dock-marker) {
+        flex: 0 0 auto !important;
         flex-shrink: 0 !important;
-        background: rgba(253, 249, 243, 0.98) !important;
-        border-top: 1px solid rgba(143,179,154,0.18) !important;
-        padding-top: 0.4rem !important;
-        margin-top: 0 !important;
+        margin-top: auto !important;
+        background: linear-gradient(0deg,
+            rgba(253, 249, 243, 0.99) 0%,
+            rgba(253, 249, 243, 0.97) 88%,
+            rgba(253, 249, 243, 0) 100%) !important;
+        border-top: 1px solid rgba(107, 158, 143, 0.22) !important;
+        padding: 0.45rem 0.15rem 0.15rem !important;
+        z-index: 5 !important;
     }
     div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
-        margin-bottom: 0.35rem !important;
+        margin-bottom: 0.3rem !important;
     }
     div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] button {
-        height: 2.65rem !important;
-        min-height: 2.65rem !important;
-        max-height: 2.65rem !important;
-        font-size: 0.78rem !important;
+        height: 2.55rem !important;
+        min-height: 2.55rem !important;
+        max-height: 2.55rem !important;
+        font-size: 0.76rem !important;
+    }
+    div:has(> #chat-follow-marker) {
+        margin-bottom: 0.3rem !important;
+        padding-bottom: 0.25rem !important;
+        border-bottom: 1px dashed rgba(107, 158, 143, 0.2) !important;
+    }
+    div:has(> #chat-follow-marker) + div[data-testid="stHorizontalBlock"] button {
+        height: 2.35rem !important;
+        min-height: 2.35rem !important;
+        max-height: 2.35rem !important;
+        font-size: 0.74rem !important;
     }
 
     .chat-options-panel {
-        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.85));
-        border: 1px solid rgba(107,158,143,0.28);
-        border-radius: 14px;
-        padding: 0.5rem 0.65rem 0.4rem;
-        margin-bottom: 0.35rem;
+        background: linear-gradient(135deg, rgba(255,252,248,0.98), rgba(232,245,238,0.9));
+        border: 1px solid rgba(107,158,143,0.32);
+        border-radius: 12px;
+        padding: 0.35rem 0.55rem 0.3rem;
+        margin-bottom: 0.28rem;
     }
     .chat-options-panel .eval-pick-title {
         font-family: var(--font-display);
-        font-size: 0.95rem;
+        font-size: 0.88rem;
         font-weight: 600;
         text-align: center;
         color: var(--giverny-ink);
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.2rem;
+    }
+
+    [data-testid="column"]:has(#chat-column-marker) div:has(> div[data-testid="stChatInput"]) {
+        flex-shrink: 0 !important;
+        margin-top: 0.15rem !important;
     }
 
     [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
@@ -1511,8 +1611,10 @@ def inject_garden_app_layout_css() -> None:
         color: var(--giverny-muted) !important;
         margin-top: 0.35rem !important;
     }
-    #chat-scroll-marker, #chat-footer-dock-marker, #chat-column-marker,
-    #step-buttons-marker, #studio-column-marker { display: none !important; height: 0 !important; }
+    #chat-scroll-marker, #chat-footer-dock-marker, #chat-follow-marker,
+    #chat-column-marker, #step-buttons-marker, #studio-column-marker {
+        display: none !important; height: 0 !important;
+    }
     """)
 
 
@@ -1985,7 +2087,11 @@ def main_app():
         st.markdown("""
         <div class="studio-hero">
             <div class="section-label">Giverny · Writing Atelier</div>
-            <h1 class="studio-hero-title">SRL Writing Coach</h1>
+            <h1 class="studio-hero-title">
+                <span class="hero-line1">SRL Writing</span>
+                <span class="hero-line2 gradient-text">Coach</span>
+            </h1>
+            <div class="hero-title-rule"></div>
             <p class="studio-hero-sub">🪷 Where words bloom</p>
         </div>
         """, unsafe_allow_html=True)
@@ -2025,74 +2131,83 @@ def main_app():
         <div class="chat-studio-header">
             <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
             <h2>Writing Studio</h2>
-            <p class="chat-studio-sub">Pick a step below the chat, then write your message</p>
+            <p class="chat-studio-sub">Step buttons &amp; options stay below — type anytime</p>
         </div>
         """, unsafe_allow_html=True)
 
-        chat_scroll = st.container(height=420, border=False)
+        chat_h = chat_messages_scroll_height(cur)
+        chat_scroll = st.container(height=chat_h, border=False)
         with chat_scroll:
             st.markdown('<div id="chat-scroll-marker"></div>', unsafe_allow_html=True)
             for msg in st.session_state.messages:
                 with st.chat_message("user" if msg["role"] == "user" else "assistant"):
                     st.markdown(msg["content"])
 
-        st.markdown('<div id="chat-footer-dock-marker"></div>', unsafe_allow_html=True)
+        with st.container(border=False):
+            st.markdown('<div id="chat-footer-dock-marker"></div>', unsafe_allow_html=True)
 
-        if st.session_state.show_draft_choice and cur == "draft":
-            st.markdown(
-                '<div class="chat-options-panel">'
-                '<div class="eval-pick-title">✍️ Draft — choose your path</div></div>',
-                unsafe_allow_html=True,
+            st.markdown('<div id="step-buttons-marker"></div>', unsafe_allow_html=True)
+            bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
+            with bc1:
+                render_step_button("plan", "📋", action_plan)
+            with bc2:
+                render_step_button("draft", "✍️", action_draft)
+            with bc3:
+                render_step_button("evaluating", "📊", action_open_evaluation)
+            with bc4:
+                render_step_button("interaction", "💬", action_interaction)
+
+            show_follow = (
+                (st.session_state.show_draft_choice and cur == "draft")
+                or (st.session_state.show_eval_menu and cur == "evaluating")
             )
-            oc1, oc2 = st.columns(2, gap="small")
-            with oc1:
-                st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
-                          key="btn_draft_has_idea", type="primary")
-            with oc2:
-                st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
-                          key="btn_draft_no_idea", type="secondary")
+            if show_follow:
+                st.markdown('<div id="chat-follow-marker"></div>', unsafe_allow_html=True)
 
-        if st.session_state.show_eval_menu and cur == "evaluating":
-            st.markdown(
-                '<div class="chat-options-panel">'
-                '<div class="eval-pick-title">📊 Evaluation — choose type</div></div>',
-                unsafe_allow_html=True,
-            )
-            ec1, ec2 = st.columns(2, gap="small")
-            with ec1:
-                st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
-                          key="btn_eval_feedback", type="secondary")
-            with ec2:
-                st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
-                          key="btn_eval_score_menu", type="secondary")
-            if st.session_state.show_eval_score_menu:
-                sc1, sc2, sc3, sc4 = st.columns(4, gap="small")
-                with sc1:
-                    st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
-                              key="btn_eval_ielts", type="primary")
-                with sc2:
-                    st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
-                              key="btn_eval_toefl", type="secondary")
-                with sc3:
-                    st.button("CET", use_container_width=True, on_click=action_eval_cet,
-                              key="btn_eval_cet", type="secondary")
-                with sc4:
-                    st.button("Creative", use_container_width=True, on_click=action_eval_creative,
-                              key="btn_eval_creative", type="secondary")
+            if st.session_state.show_draft_choice and cur == "draft":
+                st.markdown(
+                    '<div class="chat-options-panel">'
+                    '<div class="eval-pick-title">✍️ Draft — choose your path</div></div>',
+                    unsafe_allow_html=True,
+                )
+                oc1, oc2 = st.columns(2, gap="small")
+                with oc1:
+                    st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
+                              key="btn_draft_has_idea", type="primary")
+                with oc2:
+                    st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
+                              key="btn_draft_no_idea", type="secondary")
 
-        st.markdown('<div id="step-buttons-marker"></div>', unsafe_allow_html=True)
-        bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
-        with bc1:
-            render_step_button("plan", "📋", action_plan)
-        with bc2:
-            render_step_button("draft", "✍️", action_draft)
-        with bc3:
-            render_step_button("evaluating", "📊", action_open_evaluation)
-        with bc4:
-            render_step_button("interaction", "💬", action_interaction)
+            if st.session_state.show_eval_menu and cur == "evaluating":
+                st.markdown(
+                    '<div class="chat-options-panel">'
+                    '<div class="eval-pick-title">📊 Evaluation — choose type</div></div>',
+                    unsafe_allow_html=True,
+                )
+                ec1, ec2 = st.columns(2, gap="small")
+                with ec1:
+                    st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
+                              key="btn_eval_feedback", type="secondary")
+                with ec2:
+                    st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
+                              key="btn_eval_score_menu", type="secondary")
+                if st.session_state.show_eval_score_menu:
+                    sc1, sc2, sc3, sc4 = st.columns(4, gap="small")
+                    with sc1:
+                        st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
+                                  key="btn_eval_ielts", type="primary")
+                    with sc2:
+                        st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
+                                  key="btn_eval_toefl", type="secondary")
+                    with sc3:
+                        st.button("CET", use_container_width=True, on_click=action_eval_cet,
+                                  key="btn_eval_cet", type="secondary")
+                    with sc4:
+                        st.button("Creative", use_container_width=True, on_click=action_eval_creative,
+                                  key="btn_eval_creative", type="secondary")
 
-        st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
-        st.caption("🪷 Monet Garden · ⚡ DeepSeek · 📝 IELTS & TOEFL · Your words, your voice")
+            st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
+            st.caption("🪷 Monet Garden · ⚡ DeepSeek · 📝 IELTS & TOEFL · Your words, your voice")
 
     inject_autoscroll_to_latest()
 
