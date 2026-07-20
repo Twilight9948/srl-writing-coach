@@ -1288,439 +1288,231 @@ def render_journey_timeline(current_step: str, completed: set, plan_completed: b
 
 
 def inject_garden_app_layout_css() -> None:
-    """Monet Giverny studio — glass panels, pond light, painterly rails."""
+    """Two-column studio: left fixed rail, right = scrollable chat + docked footer."""
     inject_css_block("""
     section[data-testid="stSidebar"],
     [data-testid="collapsedControl"] { display: none !important; }
 
-    .stApp:has(.app-shell-marker),
-    .stApp:has(.app-shell-marker) section.main,
-    .stApp:has(.app-shell-marker) .main .block-container {
-        overflow: hidden !important;
-    }
-
     .block-container {
-        padding: 0.5rem 1.25rem 0.5rem !important;
+        padding: 0.45rem 1rem 0.45rem !important;
         max-width: 1480px !important;
     }
     .block-container:has(.app-shell-marker) {
-        height: calc(100dvh - 0.75rem) !important;
-        max-height: calc(100dvh - 0.75rem) !important;
+        height: calc(100dvh - 0.5rem) !important;
+        max-height: calc(100dvh - 0.5rem) !important;
         overflow: hidden !important;
-        padding-bottom: 0.5rem !important;
     }
     div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
         align-items: stretch !important;
         gap: 0 !important;
-        height: calc(100dvh - 1.25rem) !important;
-        max-height: calc(100dvh - 1.25rem) !important;
+        height: calc(100dvh - 1rem) !important;
+        max-height: calc(100dvh - 1rem) !important;
         overflow: hidden !important;
     }
 
-    /* ── Left rail: FIXED, does not scroll with chat ── */
+    /* ── Left rail ── */
     [data-testid="column"]:has(#studio-column-marker) {
-        flex: 0 0 min(320px, 28vw) !important;
-        max-width: 340px !important;
-        position: relative !important;
+        flex: 0 0 300px !important;
+        max-width: 300px !important;
         height: 100% !important;
-        max-height: 100% !important;
-        overflow: hidden !important;
-        padding: 0.5rem 1.1rem 0.5rem 0.3rem !important;
-        margin-right: 0 !important;
-        border-right: 3px solid rgba(74, 115, 95, 0.45) !important;
-        box-shadow: 5px 0 28px rgba(47, 74, 64, 0.06) !important;
-        background: linear-gradient(90deg,
-            rgba(255,253,250,0.55) 0%,
-            rgba(255,253,250,0.12) 100%) !important;
-    }
-    [data-testid="column"]:has(#studio-column-marker) > [data-testid="stVerticalBlock"] {
-        height: 100% !important;
-        max-height: 100% !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    [data-testid="column"]:has(#studio-column-marker)::after {
-        content: '';
-        position: absolute;
-        top: 5%; bottom: 5%; right: -1px;
-        width: 1px;
-        background: rgba(255, 255, 255, 0.75);
-        pointer-events: none;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        padding: 0.4rem 0.9rem 0.4rem 0.25rem !important;
+        border-right: 3px solid rgba(74, 115, 95, 0.5) !important;
+        box-shadow: 4px 0 20px rgba(47, 74, 64, 0.05) !important;
+        scrollbar-width: thin;
     }
 
-    .studio-hero {
-        margin-bottom: 0.45rem;
-        padding-bottom: 0.4rem;
-        border-bottom: 1px solid rgba(143,179,154,0.15);
-    }
+    .studio-hero { margin-bottom: 0.35rem; }
     .studio-hero-title {
         font-family: var(--font-display);
-        font-size: clamp(1.55rem, 2.8vw, 2.15rem) !important;
+        font-size: 1.65rem !important;
         font-weight: 700;
-        line-height: 1.05;
+        line-height: 1.08;
         color: var(--giverny-ink);
-        margin: 0.15rem 0 0.25rem;
-        letter-spacing: -0.01em;
-        text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+        margin: 0.1rem 0 0.2rem;
     }
     .studio-hero-sub {
-        font-size: 0.82rem;
+        font-size: 0.76rem;
         color: var(--giverny-muted);
         margin: 0;
         font-style: italic;
-        letter-spacing: 0.02em;
     }
-
     .studio-user-card {
-        background: linear-gradient(145deg,
-            rgba(255,252,248,0.92) 0%,
-            rgba(232,245,238,0.85) 50%,
-            rgba(240,232,248,0.75) 100%);
-        backdrop-filter: blur(12px);
+        background: linear-gradient(145deg, rgba(255,252,248,0.92), rgba(232,245,238,0.85));
         border: 1px solid rgba(255,255,255,0.65);
-        border-radius: 18px;
-        padding: 0.65rem 0.85rem;
-        margin-bottom: 0.65rem;
-        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.9);
-        position: relative;
-        overflow: hidden;
-    }
-    .studio-user-card::before {
-        content: '';
-        position: absolute;
-        top: -30%; right: -20%;
-        width: 55%; height: 80%;
-        background: radial-gradient(circle, rgba(139,184,212,0.18), transparent 65%);
-        pointer-events: none;
+        border-radius: 14px;
+        padding: 0.5rem 0.7rem;
+        margin-bottom: 0.45rem;
     }
     .studio-user-card .user-name {
         font-family: var(--font-display);
-        font-size: 1.25rem;
+        font-size: 1.1rem;
         font-weight: 600;
         color: var(--giverny-ink);
-        position: relative;
     }
     .studio-user-card .user-meta {
-        font-size: 0.74rem;
+        font-size: 0.7rem;
         color: var(--giverny-muted);
-        margin-top: 0.15rem;
-        line-height: 1.4;
-        position: relative;
+        margin-top: 0.1rem;
     }
-
     .studio-progress-label {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 600;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.16em;
         text-transform: uppercase;
         color: var(--giverny-pond);
-        margin: 0 0 0.35rem;
+        margin: 0 0 0.25rem;
     }
-
-    /* Timeline — watercolor steps */
-    .journey-timeline { margin: 0.1rem 0 0.35rem; }
-    .tl-item { display: flex; gap: 0.45rem; margin-bottom: 0; }
-    .tl-rail {
-        width: 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding-top: 0.5rem;
-    }
+    .journey-timeline { margin: 0 0 0.3rem; }
+    .tl-item { display: flex; gap: 0.4rem; }
+    .tl-rail { width: 14px; display: flex; flex-direction: column; align-items: center; padding-top: 0.35rem; }
     .tl-dot {
-        width: 11px; height: 11px;
-        border-radius: 50%;
+        width: 9px; height: 9px; border-radius: 50%;
         background: rgba(143,179,154,0.4);
         border: 2px solid rgba(255,255,255,0.95);
-        box-shadow: 0 0 0 1px rgba(143,179,154,0.25);
     }
     .tl-item:not(:last-child) .tl-rail::after {
-        content: '';
-        flex: 1;
-        width: 2px;
-        min-height: 22px;
+        content: ''; flex: 1; width: 2px; min-height: 16px;
         background: linear-gradient(180deg, rgba(139,184,212,0.4), rgba(200,184,216,0.2));
-        margin-top: 4px;
-        border-radius: 2px;
+        margin-top: 3px;
     }
-    .tl-content {
-        flex: 1;
-        padding: 0.2rem 0.45rem 0.28rem;
-        border-radius: 10px;
-        transition: all 0.25s ease;
-    }
-    .tl-content strong {
-        font-family: var(--font-display);
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--giverny-ink);
-        display: block;
-    }
-    .tl-blurb {
-        display: block;
-        font-size: 0.68rem;
-        color: var(--giverny-muted);
-        margin-top: 0.08rem;
-        font-style: italic;
-    }
-    .tl-num {
-        font-size: 0.65rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        color: rgba(107,158,143,0.5);
-        margin-bottom: 0.08rem;
-        display: block;
-    }
+    .tl-content { flex: 1; padding: 0.15rem 0.4rem 0.2rem; border-radius: 8px; }
+    .tl-content strong { font-size: 0.82rem; font-weight: 600; display: block; color: var(--giverny-ink); }
+    .tl-blurb { font-size: 0.62rem; color: var(--giverny-muted); font-style: italic; }
+    .tl-num { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; color: rgba(107,158,143,0.5); }
     .tl-active .tl-dot {
         background: linear-gradient(145deg, #4a735f, #6b9e8f);
-        box-shadow: 0 0 0 4px rgba(107,158,143,0.18), 0 2px 8px rgba(74,115,95,0.25);
-        transform: scale(1.15);
+        box-shadow: 0 0 0 3px rgba(107,158,143,0.15);
     }
     .tl-active .tl-content {
-        background: linear-gradient(135deg,
-            rgba(232,245,238,0.95),
-            rgba(255,252,248,0.88),
-            rgba(240,232,248,0.6));
-        border: 1px solid rgba(95,138,114,0.3);
-        box-shadow: var(--monet-shadow-soft);
+        background: rgba(232,245,238,0.9);
+        border: 1px solid rgba(95,138,114,0.25);
     }
-    .tl-done .tl-dot {
-        background: linear-gradient(145deg, #5f8a72, #8fb39a);
-    }
-    .tl-done .tl-content strong { color: var(--giverny-pond); }
+    .tl-done .tl-dot { background: #5f8a72; }
 
-    .studio-guide-box {
-        background: linear-gradient(135deg, rgba(107,158,143,0.1), rgba(200,184,216,0.08));
-        border: 1px solid rgba(107,158,143,0.18);
-        border-radius: 12px;
-        padding: 0.45rem 0.6rem;
-        font-size: 0.74rem;
-        line-height: 1.45;
-        color: var(--giverny-ink);
-        margin-bottom: 0.35rem;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-    }
-    .studio-guide-box strong {
-        font-family: var(--font-display);
-        font-size: 0.95rem;
-        display: block;
-        margin-bottom: 0.3rem;
-        color: var(--giverny-pond);
-    }
     .studio-actions {
-        margin-top: auto !important;
+        margin-top: 0.5rem;
         padding-top: 0.45rem;
         border-top: 1px solid rgba(143,179,154,0.22);
     }
-    [data-testid="column"]:has(#studio-column-marker) .stProgress {
-        margin-bottom: 0.35rem !important;
-    }
-    [data-testid="column"]:has(#studio-column-marker) .stProgress p {
-        font-size: 0.72rem !important;
-        margin-bottom: 0.15rem !important;
-    }
-    [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div {
-        background: rgba(143,179,154,0.15) !important;
-        border-radius: 999px !important;
-    }
-    [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div > div {
-        background: linear-gradient(90deg, #5f8a72, #6b9e8f, #8bb8d4) !important;
-        border-radius: 999px !important;
-    }
+    [data-testid="column"]:has(#studio-column-marker) .stProgress { margin-bottom: 0.25rem !important; }
+    [data-testid="column"]:has(#studio-column-marker) .stProgress p { font-size: 0.68rem !important; }
 
-    /* ── Right: fixed panel, ONLY this area scrolls ── */
+    /* ── Right chat column ── */
     [data-testid="column"]:has(#chat-column-marker) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
         height: 100% !important;
-        max-height: 100% !important;
         overflow: hidden !important;
-        padding: 0.35rem 0.5rem 0.35rem 1.15rem !important;
-        background:
-            linear-gradient(155deg,
-                rgba(255,253,250,0.62) 0%,
-                rgba(240,248,244,0.45) 50%,
-                rgba(248,240,252,0.4) 100%) !important;
+        padding: 0.3rem 0.45rem 0.3rem 0.9rem !important;
+        background: linear-gradient(155deg, rgba(255,253,250,0.65), rgba(240,248,244,0.45)) !important;
         border: 1px solid rgba(255,255,255,0.55) !important;
-        border-radius: 28px !important;
-        box-shadow: var(--monet-shadow), inset 0 1px 0 rgba(255,255,255,0.75) !important;
-        backdrop-filter: blur(14px) saturate(1.15) !important;
-        display: flex !important;
-        flex-direction: column !important;
+        border-radius: 24px !important;
+        box-shadow: var(--monet-shadow-soft) !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
-        flex: 1 1 auto !important;
-        min-height: 0 !important;
         height: 100% !important;
         max-height: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+
+    /* Scrollable message area only */
+    [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        border: none !important;
+        background: transparent !important;
+        margin-bottom: 0.25rem !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] > div {
         overflow-y: auto !important;
-        overflow-x: hidden !important;
-        scroll-behavior: smooth !important;
-        padding: 0.15rem 0.35rem !important;
         scrollbar-width: thin;
         scrollbar-color: rgba(107,158,143,0.35) transparent;
     }
 
-    /* Pinned top: step buttons + header + step options */
-    div:has(> #step-buttons-marker),
-    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"],
-    div:has(> #chat-header-marker),
-    div:has(> #chat-options-marker) {
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 40 !important;
-        background: rgba(253, 249, 243, 0.97) !important;
-        backdrop-filter: blur(10px) !important;
-    }
-    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
-        padding: 0.25rem 0 0.45rem !important;
-        margin-bottom: 0 !important;
-        border-bottom: 1px solid rgba(143,179,154,0.14) !important;
-    }
-    div:has(> #chat-options-marker) {
-        padding: 0.35rem 0 0.45rem !important;
-        border-bottom: 1px solid rgba(143,179,154,0.1) !important;
-    }
-
-    /* Pinned bottom: input + caption */
-    [data-testid="column"]:has(#chat-column-marker) div:has(> div[data-testid="stChatInput"]) {
-        position: sticky !important;
-        bottom: 0 !important;
-        z-index: 40 !important;
-        background: linear-gradient(0deg,
-            rgba(253,249,243,0.99) 0%,
-            rgba(253,249,243,0.97) 75%,
-            rgba(253,249,243,0) 100%) !important;
-        padding: 0.5rem 0 0.15rem !important;
-        margin-top: 0.35rem !important;
-    }
-    #chat-input-footer-marker { display: none !important; height: 0 !important; }
-
-    .chat-options-panel {
-        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.85));
-        border: 1px solid rgba(107,158,143,0.28);
-        border-radius: 18px;
-        padding: 0.65rem 0.75rem 0.55rem;
-        margin: 0.35rem 0 0.5rem;
-        box-shadow: var(--monet-shadow-soft);
-    }
-    .chat-options-panel .eval-pick-title {
-        font-family: var(--font-display);
-        font-size: 1.05rem;
-        font-weight: 600;
-        text-align: center;
-        color: var(--giverny-ink);
-        margin-bottom: 0.45rem;
-    }
-
     .chat-studio-header {
-        margin-bottom: 1rem;
-        padding: 0.85rem 1.1rem;
-        border-radius: 20px;
-        background: linear-gradient(135deg,
-            rgba(255,252,248,0.85),
-            rgba(232,245,238,0.7),
-            rgba(240,232,248,0.5));
+        flex-shrink: 0;
+        margin-bottom: 0.35rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75));
         border: 1px solid rgba(255,255,255,0.6);
-        box-shadow: var(--monet-shadow-soft);
     }
     .chat-studio-header .step-pill {
         display: inline-block;
-        padding: 0.3rem 0.85rem;
+        padding: 0.2rem 0.65rem;
         border-radius: 999px;
         background: rgba(107,158,143,0.12);
-        border: 1px solid rgba(107,158,143,0.25);
-        font-size: 0.68rem;
+        font-size: 0.62rem;
         font-weight: 600;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: var(--giverny-pond);
     }
     .chat-studio-header h2 {
         font-family: var(--font-display);
-        font-size: clamp(1.65rem, 2.8vw, 2.25rem);
+        font-size: 1.45rem;
         font-weight: 600;
-        margin: 0.35rem 0 0.15rem;
-        background: linear-gradient(125deg, #3d6b56, #6b9e8f, #8bb8d4);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        margin: 0.2rem 0 0.05rem;
+        color: var(--giverny-ink);
     }
-    .chat-studio-sub {
-        font-size: 0.82rem;
-        color: var(--giverny-muted);
-        font-style: italic;
-        margin-top: 0.15rem;
+    .chat-studio-sub { font-size: 0.76rem; color: var(--giverny-muted); font-style: italic; margin: 0; }
+
+    /* Footer dock: options + step buttons + input — always visible */
+    div:has(> #chat-footer-dock-marker) {
+        flex-shrink: 0 !important;
+        background: rgba(253, 249, 243, 0.98) !important;
+        border-top: 1px solid rgba(143,179,154,0.18) !important;
+        padding-top: 0.4rem !important;
+        margin-top: 0 !important;
+    }
+    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
+        margin-bottom: 0.35rem !important;
+    }
+    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] button {
+        height: 2.65rem !important;
+        min-height: 2.65rem !important;
+        max-height: 2.65rem !important;
+        font-size: 0.78rem !important;
+    }
+
+    .chat-options-panel {
+        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.85));
+        border: 1px solid rgba(107,158,143,0.28);
+        border-radius: 14px;
+        padding: 0.5rem 0.65rem 0.4rem;
+        margin-bottom: 0.35rem;
+    }
+    .chat-options-panel .eval-pick-title {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: center;
+        color: var(--giverny-ink);
+        margin-bottom: 0.35rem;
     }
 
     [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
-        margin-bottom: 1rem !important;
-        animation: fadeUp 0.45s ease-out;
-    }
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
-        background: linear-gradient(145deg,
-            rgba(255,253,250,0.98),
-            rgba(238,248,244,0.95),
-            rgba(232,240,252,0.85)) !important;
-        border: 1px solid rgba(200,184,216,0.2) !important;
-        border-radius: 24px 24px 24px 8px !important;
-        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.85) !important;
-        padding: 1.3rem 1.5rem !important;
-    }
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(145deg,
-            rgba(232,245,238,0.96),
-            rgba(216,232,220,0.9),
-            rgba(200,220,210,0.85)) !important;
-        border: 1px solid rgba(107,158,143,0.22) !important;
-        border-radius: 24px 24px 8px 24px !important;
-        box-shadow: var(--monet-shadow-soft) !important;
+        margin-bottom: 0.75rem !important;
     }
     [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatInput"] {
-        margin-top: 1rem !important;
-        border-radius: 24px !important;
+        margin-top: 0 !important;
+        border-radius: 20px !important;
         border: 1.5px solid rgba(95,138,114,0.35) !important;
-        background: linear-gradient(135deg, rgba(255,253,250,0.95), rgba(242,248,243,0.92)) !important;
-        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.8) !important;
-        backdrop-filter: blur(8px) !important;
     }
     [data-testid="column"]:has(#chat-column-marker) .stCaption {
         text-align: center;
-        font-size: 0.72rem !important;
+        font-size: 0.68rem !important;
         color: var(--giverny-muted) !important;
-        letter-spacing: 0.04em;
-        margin-top: 0.65rem !important;
-        opacity: 0.85;
+        margin-top: 0.35rem !important;
     }
-
-    .eval-pick-box {
-        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75)) !important;
-        border: 1px solid rgba(143,179,154,0.22) !important;
-        border-radius: 18px !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7) !important;
-    }
-    .eval-pick-title {
-        font-family: var(--font-display) !important;
-        font-size: 1.05rem !important;
-        color: var(--giverny-ink) !important;
-    }
-
-    @media (max-width: 900px) {
-        [data-testid="column"]:has(#studio-column-marker) {
-            position: relative !important;
-            max-width: 100% !important;
-            max-height: none !important;
-            padding: 0 0 1.25rem !important;
-            margin-bottom: 0.75rem !important;
-            border-bottom: 1px solid rgba(143,179,154,0.2) !important;
-        }
-        [data-testid="column"]:has(#studio-column-marker)::after { display: none; }
-        [data-testid="column"]:has(#chat-column-marker) {
-            padding: 1rem !important;
-            border-radius: 24px !important;
-        }
-    }
+    #chat-scroll-marker, #chat-footer-dock-marker, #chat-column-marker,
+    #step-buttons-marker, #studio-column-marker { display: none !important; height: 0 !important; }
     """)
 
 
@@ -1729,27 +1521,15 @@ def inject_autoscroll_to_latest() -> None:
     <script>
     (function () {
         const doc = window.parent.document;
-
-        /* Lock whole-page scroll — only right chat panel may scroll */
-        doc.documentElement.style.overflow = 'hidden';
-        doc.body.style.overflow = 'hidden';
-
         function scrollLatest() {
-            const vb = doc.querySelector(
-                '[data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"]'
+            const box = doc.querySelector(
+                '[data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"] > div'
             );
-            if (!vb) return;
-            vb.scrollTop = vb.scrollHeight;
-            const msgs = doc.querySelectorAll(
-                '[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatMessage"]'
-            );
-            if (msgs.length) {
-                msgs[msgs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
+            if (box) box.scrollTop = box.scrollHeight;
         }
         scrollLatest();
-        setTimeout(scrollLatest, 250);
-        setTimeout(scrollLatest, 700);
+        setTimeout(scrollLatest, 200);
+        setTimeout(scrollLatest, 600);
     })();
     </script>
     """
@@ -2205,16 +1985,15 @@ def main_app():
         st.markdown("""
         <div class="studio-hero">
             <div class="section-label">Giverny · Writing Atelier</div>
-            <h1 class="studio-hero-title">SRL Writing<br><span class="gradient-text">Coach</span></h1>
-            <p class="studio-hero-sub">🪷 Where words bloom like water lilies</p>
+            <h1 class="studio-hero-title">SRL Writing Coach</h1>
+            <p class="studio-hero-sub">🪷 Where words bloom</p>
         </div>
-        <div class="monet-ornament" style="margin:0.15rem 0 0.35rem;font-size:0.65rem;opacity:0.5">· · ·</div>
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
         <div class="studio-user-card">
             <div class="user-name">{st.session_state.user_name}</div>
-            <div class="user-meta">{st.session_state.user_id}<br>{round_label}</div>
+            <div class="user-meta">{st.session_state.user_id} · {round_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2223,13 +2002,7 @@ def main_app():
             render_journey_timeline(cur, completed, st.session_state.plan_completed),
             unsafe_allow_html=True,
         )
-        st.progress(progress, text=f"{len(completed)} of {len(STEPS)} steps touched")
-
-        st.markdown(
-            f'<div class="studio-guide-box"><strong>💡 {STEP_LABELS.get(cur, cur)}</strong>{tip}</div>',
-            unsafe_allow_html=True,
-        )
-        st.caption(f"Draft checks: {st.session_state.monitoring_count}")
+        st.progress(progress, text=f"{len(completed)}/{len(STEPS)} steps · checks {st.session_state.monitoring_count}")
 
         st.markdown('<div class="studio-actions">', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
@@ -2248,28 +2021,24 @@ def main_app():
     with col_chat:
         st.markdown('<div id="chat-column-marker"></div>', unsafe_allow_html=True)
 
-        st.markdown('<div id="step-buttons-marker"></div>', unsafe_allow_html=True)
-        bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
-        with bc1:
-            render_step_button("plan", "📋", action_plan)
-        with bc2:
-            render_step_button("draft", "✍️", action_draft)
-        with bc3:
-            render_step_button("evaluating", "📊", action_open_evaluation)
-        with bc4:
-            render_step_button("interaction", "💬", action_interaction)
-
         st.markdown(f"""
-        <div id="chat-header-marker"></div>
         <div class="chat-studio-header">
             <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
             <h2>Writing Studio</h2>
-            <p class="chat-studio-sub">Choose a step above, then paint your words below</p>
+            <p class="chat-studio-sub">Pick a step below the chat, then write your message</p>
         </div>
         """, unsafe_allow_html=True)
 
+        chat_scroll = st.container(height=420, border=False)
+        with chat_scroll:
+            st.markdown('<div id="chat-scroll-marker"></div>', unsafe_allow_html=True)
+            for msg in st.session_state.messages:
+                with st.chat_message("user" if msg["role"] == "user" else "assistant"):
+                    st.markdown(msg["content"])
+
+        st.markdown('<div id="chat-footer-dock-marker"></div>', unsafe_allow_html=True)
+
         if st.session_state.show_draft_choice and cur == "draft":
-            st.markdown('<div id="chat-options-marker"></div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="chat-options-panel">'
                 '<div class="eval-pick-title">✍️ Draft — choose your path</div></div>',
@@ -2284,7 +2053,6 @@ def main_app():
                           key="btn_draft_no_idea", type="secondary")
 
         if st.session_state.show_eval_menu and cur == "evaluating":
-            st.markdown('<div id="chat-options-marker"></div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="chat-options-panel">'
                 '<div class="eval-pick-title">📊 Evaluation — choose type</div></div>',
@@ -2312,11 +2080,17 @@ def main_app():
                     st.button("Creative", use_container_width=True, on_click=action_eval_creative,
                               key="btn_eval_creative", type="secondary")
 
-        for msg in st.session_state.messages:
-            with st.chat_message("user" if msg["role"] == "user" else "assistant"):
-                st.markdown(msg["content"])
+        st.markdown('<div id="step-buttons-marker"></div>', unsafe_allow_html=True)
+        bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
+        with bc1:
+            render_step_button("plan", "📋", action_plan)
+        with bc2:
+            render_step_button("draft", "✍️", action_draft)
+        with bc3:
+            render_step_button("evaluating", "📊", action_open_evaluation)
+        with bc4:
+            render_step_button("interaction", "💬", action_interaction)
 
-        st.markdown('<div id="chat-input-footer-marker"></div>', unsafe_allow_html=True)
         st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
         st.caption("🪷 Monet Garden · ⚡ DeepSeek · 📝 IELTS & TOEFL · Your words, your voice")
 
