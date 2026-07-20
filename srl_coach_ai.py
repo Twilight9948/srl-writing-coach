@@ -128,8 +128,8 @@ STEP_LABELS = {
 STEP_BTN_LABEL = {
     "plan": "Plan",
     "draft": "Draft",
-    "evaluating": "Evaluate",
-    "interaction": "Interact",
+    "evaluating": "Evaluation",
+    "interaction": "Interaction",
 }
 ROUND_LABELS = {"round_1": "Session 1", "round_2": "Session 2", "round_3": "Session 3"}
 
@@ -1067,8 +1067,8 @@ def do_login(user_id: str, user_name: str, test_round: str = "round_1"):
             f"👋 **Welcome, {user_name}!**\n\n"
             "This coach is designed for **English learners at every level** — with strong support for "
             "**IELTS** and **TOEFL** writing, plus CET and creative rubrics.\n\n"
-            "Share your topic (or say you have no idea — I'll offer prompts from our question bank), "
-            "then we'll begin with **Step 1: Plan**.\n\n"
+            "Share your topic (or say you have no idea — I'll offer prompts from our question bank).\n\n"
+            "**Click Plan · Draft · Evaluation · Interaction** on the left to begin each step.\n\n"
             "---\n🪷 *Your writing garden — one thoughtful step at a time.*"
         )
     })
@@ -1162,14 +1162,17 @@ def inject_step_button_styles(active_step: str) -> None:
         border = "2px solid rgba(180, 220, 195, 0.9)" if on else "1px solid rgba(143, 179, 154, 0.35)"
         shadow = "0 6px 20px rgba(74, 115, 95, 0.38)" if on else "0 2px 8px rgba(58, 82, 72, 0.08)"
         transform = "translateY(-2px) scale(1.02)" if on else "none"
-        opacity = "1" if on else "0.82"
-        sk = _st_key(key)
+        opacity = "1" if on else "0.88"
         col_sel = (
-            f'div:has(> #srl-step-grid-marker) + div '
+            f'div:has(> #sticky-step-bar-marker) + div '
             f'[data-testid="column"]:nth-child({col_idx[step]}) button'
         )
-        block = f"{sk} button, {sk} [data-testid='stBaseButton-secondary'], {sk} [data-testid='stBaseButton-primary'], {col_sel}"
-        rules.append(f"""
+        for suffix in ("", "_panel", "_bar"):
+            sk = _st_key(key + suffix)
+            block = f"{sk} button, {sk} [data-testid='stBaseButton-secondary'], {sk} [data-testid='stBaseButton-primary']"
+            if suffix == "_bar":
+                block += f", {col_sel}"
+            rules.append(f"""
         {block} {{
             {btn_props}
             background: {bg} !important;
@@ -1189,10 +1192,6 @@ def inject_step_button_styles(active_step: str) -> None:
         {block}:hover {{
             opacity: 1 !important;
             border-color: rgba(95, 138, 114, 0.65) !important;
-        }}
-        {block}:focus, {block}:focus-visible {{
-            outline: none !important;
-            box-shadow: {shadow} !important;
         }}
         """)
 
@@ -1235,6 +1234,201 @@ def inject_step_button_styles(active_step: str) -> None:
         """)
 
     inject_css_block("".join(rules))
+
+
+def inject_garden_app_layout_css() -> None:
+    """Fixed left panel + scrollable chat column — full viewport, no page jump."""
+    inject_css_block("""
+    /* ── Garden app shell: lock to viewport ── */
+    .stApp, [data-testid="stAppViewContainer"], .main {
+        overflow: hidden !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+    }
+    .block-container {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
+        max-width: 100% !important;
+        height: calc(100dvh - 0.5rem) !important;
+        max-height: calc(100dvh - 0.5rem) !important;
+        overflow: hidden !important;
+    }
+    div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
+        height: calc(100dvh - 1rem) !important;
+        max-height: calc(100dvh - 1rem) !important;
+        align-items: stretch !important;
+        gap: 0.85rem !important;
+        overflow: hidden !important;
+    }
+
+    /* ── Left studio panel: fixed, full height, internal scroll ── */
+    [data-testid="column"]:has(#studio-column-marker) {
+        position: relative !important;
+        flex: 0 0 min(340px, 32vw) !important;
+        max-width: 340px !important;
+        height: calc(100dvh - 1rem) !important;
+        max-height: calc(100dvh - 1rem) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        background:
+            radial-gradient(ellipse at 20% 10%, rgba(200,184,216,0.18), transparent 55%),
+            radial-gradient(ellipse at 80% 90%, rgba(168,197,160,0.15), transparent 50%),
+            linear-gradient(175deg, rgba(255,253,250,0.96), rgba(232,245,238,0.92)) !important;
+        border: 1px solid rgba(143, 179, 154, 0.32) !important;
+        border-radius: 26px !important;
+        padding: 0.85rem 0.75rem 0.75rem !important;
+        box-shadow: 0 16px 48px rgba(58, 82, 72, 0.1), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(95,138,114,0.35) transparent;
+    }
+    [data-testid="column"]:has(#studio-column-marker)::-webkit-scrollbar { width: 4px; }
+    [data-testid="column"]:has(#studio-column-marker)::-webkit-scrollbar-thumb {
+        background: rgba(95,138,114,0.35); border-radius: 4px;
+    }
+
+    /* ── Right chat column: flex column, messages scroll, input pinned ── */
+    [data-testid="column"]:has(#chat-column-marker) {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        height: calc(100dvh - 1rem) !important;
+        max-height: calc(100dvh - 1rem) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background:
+            radial-gradient(ellipse at 90% 15%, rgba(184,212,232,0.2), transparent 50%),
+            radial-gradient(ellipse at 10% 85%, rgba(221,184,200,0.12), transparent 45%),
+            linear-gradient(160deg, rgba(255,253,250,0.55), rgba(250,246,239,0.45)) !important;
+        border: 1px solid rgba(143, 179, 154, 0.2) !important;
+        border-radius: 26px !important;
+        padding: 0.65rem 0.85rem 0.55rem !important;
+        box-shadow: 0 12px 40px rgba(58, 82, 72, 0.07) !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        display: block !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        scroll-behavior: smooth !important;
+        scrollbar-width: thin;
+    }
+    div:has(> #sticky-step-bar-marker),
+    div:has(> .garden-step-prompt) {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 21 !important;
+        background: linear-gradient(180deg, rgba(250,246,239,0.99), rgba(250,246,239,0.92)) !important;
+    }
+    div:has(> .garden-step-prompt) + div[data-testid="stHorizontalBlock"] {
+        position: sticky !important;
+        top: 2.1rem !important;
+        z-index: 20 !important;
+        background: rgba(250,246,239,0.97) !important;
+        padding-bottom: 0.35rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    #chat-scroll-region-start { display: none !important; }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatInput"] {
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 15 !important;
+        background: linear-gradient(0deg, rgba(250,246,239,0.99) 80%, rgba(250,246,239,0)) !important;
+        padding-top: 0.5rem !important;
+        margin-top: 0.5rem !important;
+    }
+
+    /* Monet chat bubbles */
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
+        margin-bottom: 0.75rem !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+        background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(238,244,240,0.95)) !important;
+        border: 1px solid rgba(143,179,154,0.25) !important;
+        box-shadow: 0 6px 20px rgba(58,82,72,0.06) !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        background: linear-gradient(135deg, rgba(232,245,238,0.95), rgba(216,232,220,0.9)) !important;
+        border: 1px solid rgba(107,158,143,0.28) !important;
+    }
+
+    .garden-step-prompt {
+        text-align: center;
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        color: var(--giverny-pond);
+        letter-spacing: 0.04em;
+        margin: 0 0 0.35rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 12px;
+        background: rgba(107,158,143,0.08);
+        border: 1px dashed rgba(107,158,143,0.25);
+    }
+    .chat-header-bar {
+        border-radius: 18px !important;
+        margin-bottom: 0.5rem !important;
+        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.88)) !important;
+        border: 1px solid rgba(143,179,154,0.22) !important;
+        box-shadow: 0 4px 16px rgba(58,82,72,0.05) !important;
+        padding: 0.65rem 1rem !important;
+    }
+    .chat-header-bar .header-title {
+        font-family: var(--font-display);
+        background: linear-gradient(120deg, #4a735f, #6b9e8f, #8bb8d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    @media (max-width: 900px) {
+        div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        [data-testid="column"]:has(#studio-column-marker),
+        [data-testid="column"]:has(#chat-column-marker) {
+            max-width: 100% !important;
+            flex: 1 1 auto !important;
+            height: auto !important;
+            max-height: none !important;
+        }
+        [data-testid="column"]:has(#chat-column-marker) {
+            min-height: 65dvh !important;
+        }
+        div:has(> #chat-scroll-region-start) { max-height: none !important; }
+        .stApp, [data-testid="stAppViewContainer"], .main, .block-container {
+            height: auto !important;
+            max-height: none !important;
+            overflow: auto !important;
+        }
+    }
+    """)
+
+
+def inject_autoscroll_to_latest() -> None:
+    """Scroll chat region to latest message after each rerun."""
+    html = """
+    <script>
+    (function () {
+        const doc = window.parent.document;
+        function scrollLatest() {
+            const vb = doc.querySelector('[data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"]');
+            if (vb) vb.scrollTop = vb.scrollHeight;
+            const msgs = doc.querySelectorAll('[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatMessage"]');
+            if (msgs.length) msgs[msgs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+        scrollLatest();
+        setTimeout(scrollLatest, 200);
+        setTimeout(scrollLatest, 600);
+        setTimeout(scrollLatest, 1200);
+    })();
+    </script>
+    """
+    st.components.v1.html(html, height=0, scrolling=False)
 
 # ========== Login Page ==========
 def show_login_page():
@@ -1662,13 +1856,13 @@ def main_app():
         st.rerun()
 
     def render_step_button(step_key: str, icon: str, on_click, key_suffix: str = ""):
-        n = step_num[step_key]
         short = STEP_BTN_LABEL[step_key]
         is_completed = step_key in st.session_state.completed_steps
         is_active = step_key == cur
         display_icon = "✅" if is_completed else icon
+        label = f"{display_icon} {short}"
         st.button(
-            f"{display_icon}  {n} · {short}",
+            label,
             use_container_width=True,
             on_click=on_click,
             key=STEP_BUTTON_KEYS[step_key] + key_suffix,
@@ -1676,127 +1870,105 @@ def main_app():
         )
 
     inject_step_button_styles(cur)
+    inject_garden_app_layout_css()
     st.markdown("""
     <style>
     section[data-testid="stSidebar"] { display: none !important; }
     [data-testid="collapsedControl"] { display: none !important; }
-    section.main > div { padding-left: 1rem !important; padding-right: 1rem !important; }
     </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="app-shell-marker"></div>', unsafe_allow_html=True)
-    col_panel, col_chat = st.columns([1, 2.15], gap="large")
-
-    step_icons = {"plan": "📋", "draft": "✍️", "evaluating": "📊", "interaction": "💬"}
-    step_desc = {
-        "plan": "Set goals, thesis & outline",
-        "draft": "Write & self-check in chat",
-        "evaluating": "IELTS · TOEFL · CET feedback",
-        "interaction": "Reflect & discuss progress",
-    }
+    col_panel, col_chat = st.columns([1, 2.4], gap="medium")
 
     with col_panel:
         st.markdown('<div id="studio-column-marker"></div>', unsafe_allow_html=True)
         st.markdown("""
         <div class="panel-brand">
-            <span style="font-size:1.6rem;">🪷</span>
+            <span style="font-size:1.5rem;">🪷</span>
             <h3>SRL Writing Coach</h3>
-            <p>IELTS & TOEFL · for all English learners</p>
+            <p>Monet Garden · IELTS & TOEFL</p>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f'<p class="studio-user-chip">👤 **{st.session_state.user_name}**</p>', unsafe_allow_html=True)
-        st.caption(f"📧 {st.session_state.user_id}")
-        st.caption(f"🔄 {round_label}")
-        st.progress(progress, text=f"Journey: {len(completed)}/{len(STEPS)} steps")
+        st.markdown(f"**{st.session_state.user_name}**")
+        st.caption(f"{st.session_state.user_id} · {round_label}")
+        st.progress(progress, text=f"{len(completed)}/{len(STEPS)} steps")
 
-        st.markdown("**Your four steps**")
-        for key in STEPS:
-            n = step_num[key]
-            cls = "studio-step-card"
-            if key == cur:
-                cls += " active"
-            elif key in completed or (key == "plan" and st.session_state.plan_completed):
-                cls += " done"
-            done_mark = " ✓" if key in completed or (key == "plan" and st.session_state.plan_completed) else ""
-            st.markdown(
-                f'<div class="{cls}"><strong>{step_icons[key]} Step {n} · {STEP_LABELS[key]}{done_mark}</strong>'
-                f'<br>{step_desc[key]}</div>',
-                unsafe_allow_html=True,
-            )
-
-        render_step_button("plan", "📋", action_plan)
-        render_step_button("draft", "✍️", action_draft)
-        render_step_button("evaluating", "📊", action_open_evaluation)
-        render_step_button("interaction", "💬", action_interaction)
+        st.markdown("---")
+        st.markdown("**Choose a step**")
+        render_step_button("plan", "📋", action_plan, "_panel")
+        render_step_button("draft", "✍️", action_draft, "_panel")
+        render_step_button("evaluating", "📊", action_open_evaluation, "_panel")
+        render_step_button("interaction", "💬", action_interaction, "_panel")
 
         if st.session_state.show_draft_choice and cur in {"plan", "draft"}:
             st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown('<div class="eval-pick-title">After Plan — choose next</div>', unsafe_allow_html=True)
+            st.markdown('<div class="eval-pick-title">Draft options</div>', unsafe_allow_html=True)
             st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
                       key="btn_draft_has_idea", type="primary")
-            st.caption("You already know your topic.")
             st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
                       key="btn_draft_no_idea", type="secondary")
-            st.caption("Get writing prompts from our bank.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         if st.session_state.show_eval_menu and cur == "evaluating":
             st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown('<div class="eval-pick-title">Evaluation type</div>', unsafe_allow_html=True)
+            st.markdown('<div class="eval-pick-title">Evaluation options</div>', unsafe_allow_html=True)
             st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
                       key="btn_eval_feedback", type="secondary")
             st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
                       key="btn_eval_score_menu", type="secondary")
             if st.session_state.show_eval_score_menu:
-                st.markdown('<div class="eval-pick-title" style="margin-top:0.35rem;">Scoring</div>',
-                            unsafe_allow_html=True)
                 st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
                           key="btn_eval_ielts", type="primary")
                 st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
                           key="btn_eval_toefl", type="secondary")
                 st.button("CET-4/6", use_container_width=True, on_click=action_eval_cet,
                           key="btn_eval_cet", type="secondary")
-                st.button("Creative 100", use_container_width=True, on_click=action_eval_creative,
+                st.button("Creative", use_container_width=True, on_click=action_eval_creative,
                           key="btn_eval_creative", type="secondary")
             st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown(
-            f'<div class="studio-tip-box"><strong>💡 Step tip</strong><br>{tip}</div>',
+            f'<div class="studio-tip-box"><strong>💡 {STEP_LABELS.get(cur, cur)}</strong><br>{tip}</div>',
             unsafe_allow_html=True,
         )
-        writing_tips = [
-            "State your main idea clearly in the introduction.",
-            "One main point per body paragraph works best.",
-            "Self-check before asking for a score.",
-            "Revision is where good writing happens.",
-            "IELTS & TOEFL both reward clear, logical structure.",
-        ]
-        st.info(f"**Hint:** {random.choice(writing_tips)}")
+        st.metric("Draft checks", st.session_state.monitoring_count)
 
-        st.metric("Draft self-checks", st.session_state.monitoring_count)
-        st.divider()
-        st.button("🔄 Reset session", use_container_width=True, on_click=action_reset,
-                  key="btn_reset", type="secondary")
-        if st.button("💾 Save now", use_container_width=True, key="btn_save", type="secondary"):
-            if save_current_session():
-                st.toast("Saved 🌸", icon="✅")
-            else:
-                st.toast("Nothing to save yet.", icon="💡")
+        st.markdown("---")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.button("🔄 Reset", use_container_width=True, on_click=action_reset, key="btn_reset", type="secondary")
+        with c2:
+            if st.button("💾 Save", use_container_width=True, key="btn_save", type="secondary"):
+                if save_current_session():
+                    st.toast("Saved 🌸", icon="✅")
         if st.button("Sign out", use_container_width=True, key="btn_signout"):
             do_logout()
 
     with col_chat:
         st.markdown('<div id="chat-column-marker"></div>', unsafe_allow_html=True)
+
+        st.markdown('<div id="sticky-step-bar-marker"></div>', unsafe_allow_html=True)
+        st.markdown(
+            '<p class="garden-step-prompt">🌿 Tap a step to begin — Plan · Draft · Evaluation · Interaction</p>',
+            unsafe_allow_html=True,
+        )
+        bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
+        with bc1:
+            render_step_button("plan", "📋", action_plan, "_bar")
+        with bc2:
+            render_step_button("draft", "✍️", action_draft, "_bar")
+        with bc3:
+            render_step_button("evaluating", "📊", action_open_evaluation, "_bar")
+        with bc4:
+            render_step_button("interaction", "💬", action_interaction, "_bar")
+
         st.markdown(f"""
         <div class="chat-header-bar">
-            <div class="header-row">
-                <div>
-                    <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
-                    <h2 class="header-title">Writing studio</h2>
-                    <div class="header-meta">{st.session_state.user_name} · {round_label}</div>
-                </div>
-            </div>
+            <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
+            <h2 class="header-title" style="margin:0.25rem 0 0;">Writing Studio</h2>
+            <div class="header-meta">{st.session_state.user_name} · {round_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1804,12 +1976,10 @@ def main_app():
             with st.chat_message("user" if msg["role"] == "user" else "assistant"):
                 st.markdown(msg["content"])
 
-        st.chat_input(
-            "Type your English writing here…",
-            key="user_input",
-            on_submit=handle_input,
-        )
+        st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
         st.caption("⚡ DeepSeek · 🎓 SRL · 📝 IELTS & TOEFL · 🌸 Your words, your voice")
+
+    inject_autoscroll_to_latest()
 
 # ========== Run ==========
 init_session_state()
