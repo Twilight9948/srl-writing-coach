@@ -394,30 +394,50 @@ st.markdown("""
         --giverny-sage: #5f8a72;
         --giverny-sage-light: #8fb39a;
         --giverny-pond: #6b9e8f;
+        --giverny-water: #8bb8d4;
         --giverny-lavender: #c8b8d8;
+        --giverny-wisteria: #b8a8c8;
         --giverny-rose: #ddb8c8;
+        --giverny-sunset: #e8c4b8;
         --giverny-cream: #faf6ef;
         --giverny-paper: #f3ede4;
-        --giverny-ink: #3a5248;
+        --giverny-ink: #2f4a40;
         --giverny-muted: #6a7f74;
         --font-display: 'Cormorant Garamond', Georgia, serif;
         --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        --step-h: 3.35rem;
+        --step-h: 3.5rem;
         --chat-gap: 1.15rem;
-        --glass: rgba(255, 253, 250, 0.72);
-        --glass-border: rgba(255, 255, 255, 0.65);
+        --glass: rgba(255, 253, 250, 0.78);
+        --glass-border: rgba(255, 255, 255, 0.72);
+        --monet-shadow: 0 12px 40px rgba(47, 74, 64, 0.09);
+        --monet-shadow-soft: 0 6px 24px rgba(47, 74, 64, 0.06);
     }
 
     .stApp {
         background:
-            radial-gradient(ellipse 80% 60% at 10% 15%, rgba(184, 212, 232, 0.35), transparent 55%),
-            radial-gradient(ellipse 70% 50% at 90% 25%, rgba(200, 184, 216, 0.28), transparent 50%),
-            radial-gradient(ellipse 60% 45% at 50% 90%, rgba(168, 197, 160, 0.22), transparent 55%),
-            linear-gradient(165deg, #faf7f2 0%, #f5f0e8 40%, #eef4f0 100%);
+            radial-gradient(ellipse 55% 45% at 8% 12%, rgba(139, 184, 212, 0.42), transparent 58%),
+            radial-gradient(ellipse 50% 40% at 92% 18%, rgba(200, 184, 216, 0.38), transparent 55%),
+            radial-gradient(ellipse 45% 35% at 78% 82%, rgba(221, 184, 200, 0.28), transparent 52%),
+            radial-gradient(ellipse 60% 50% at 25% 78%, rgba(168, 197, 160, 0.32), transparent 58%),
+            radial-gradient(ellipse 40% 30% at 50% 45%, rgba(232, 196, 184, 0.15), transparent 50%),
+            linear-gradient(168deg, #fdf9f3 0%, #f7f0e6 35%, #eef4f0 68%, #e8f0ec 100%);
         background-attachment: fixed;
         font-family: var(--font-body);
         color: var(--giverny-ink);
     }
+    .stApp::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0.35;
+        background:
+            radial-gradient(circle at 15% 25%, rgba(255,255,255,0.5) 0%, transparent 8%),
+            radial-gradient(circle at 85% 70%, rgba(255,255,255,0.4) 0%, transparent 6%),
+            radial-gradient(circle at 60% 15%, rgba(200,184,216,0.2) 0%, transparent 12%);
+    }
+    .main .block-container { position: relative; z-index: 1; }
 
     .block-container {
         padding-top: 1.2rem !important;
@@ -482,10 +502,22 @@ st.markdown("""
         margin-bottom: 0.75rem;
     }
     .gradient-text {
-        background: linear-gradient(120deg, #4a735f 0%, #6b9e8f 45%, #8bb8d4 100%);
+        background: linear-gradient(125deg, #3d6b56 0%, #6b9e8f 38%, #8bb8d4 72%, #c8b8d8 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+    }
+    .monet-divider {
+        height: 1px;
+        margin: 1rem 0;
+        background: linear-gradient(90deg, transparent, rgba(107,158,143,0.35), rgba(200,184,216,0.35), transparent);
+    }
+    .monet-ornament {
+        text-align: center;
+        font-size: 0.75rem;
+        letter-spacing: 0.35em;
+        color: rgba(107,158,143,0.45);
+        margin: 0.5rem 0;
     }
     .glass-panel {
         background: var(--glass);
@@ -516,13 +548,22 @@ st.markdown("""
         margin: 1.5rem 0;
     }
     .journey-card {
-        background: rgba(255,255,255,0.55);
-        border: 1px solid rgba(143, 179, 154, 0.2);
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        background: linear-gradient(145deg, rgba(255,255,255,0.72), rgba(255,252,248,0.55));
+        border: 1px solid rgba(143, 179, 154, 0.22);
+        border-radius: 20px;
+        padding: 1.1rem 1.15rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         position: relative;
         overflow: hidden;
+        box-shadow: var(--monet-shadow-soft);
+    }
+    .journey-card::before {
+        content: '';
+        position: absolute;
+        top: -20%; right: -10%;
+        width: 60%; height: 60%;
+        background: radial-gradient(circle, rgba(200,184,216,0.15), transparent 70%);
+        pointer-events: none;
     }
     .journey-card:hover {
         transform: translateY(-3px);
@@ -599,12 +640,12 @@ st.markdown("""
     }
     [data-testid="column"]:has(#login-form-marker) {
         background: var(--glass);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(24px) saturate(1.3);
+        -webkit-backdrop-filter: blur(24px) saturate(1.3);
         border: 1px solid var(--glass-border);
-        border-radius: 28px;
-        padding: 1.75rem 1.85rem 1.25rem !important;
-        box-shadow: 0 16px 48px rgba(58, 82, 72, 0.1);
+        border-radius: 32px;
+        padding: 1.85rem 2rem 1.35rem !important;
+        box-shadow: var(--monet-shadow), inset 0 1px 0 rgba(255,255,255,0.85);
     }
     .form-title {
         font-family: var(--font-display);
@@ -689,20 +730,6 @@ st.markdown("""
         color: var(--giverny-muted);
         margin: 0.2rem 0 0;
     }
-    [data-testid="column"]:has(#studio-column-marker) {
-        background: linear-gradient(165deg, rgba(255,253,250,0.94), rgba(232,245,238,0.88));
-        border: 1px solid rgba(143, 179, 154, 0.28);
-        border-radius: 24px;
-        padding: 1rem 0.9rem 0.85rem !important;
-        box-shadow: 0 12px 36px rgba(58, 82, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.85);
-        align-self: flex-start;
-    }
-    [data-testid="column"]:has(#studio-column-marker) .panel-brand {
-        text-align: center;
-        padding-bottom: 0.65rem;
-        margin-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(143, 179, 154, 0.2);
-    }
     .studio-step-card {
         background: rgba(255,255,255,0.62);
         border: 1px solid rgba(143, 179, 154, 0.18);
@@ -754,12 +781,6 @@ st.markdown("""
         max-width: 1320px !important;
         margin-left: auto !important;
         margin-right: auto !important;
-    }
-    div:has(> #chat-column-marker) > [data-testid="stVerticalBlock"] {
-        max-width: 860px;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        width: 100%;
     }
     .logged-in-hide-sidebar [data-testid="stSidebar"],
     .logged-in-hide-sidebar [data-testid="collapsedControl"],
@@ -861,24 +882,24 @@ st.markdown("""
         margin-bottom: var(--chat-gap) !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(135deg, #f3f8f5 0%, #edf5f0 100%) !important;
+        background: linear-gradient(145deg, rgba(232,245,238,0.96), rgba(216,232,220,0.92), rgba(200,220,210,0.88)) !important;
         color: var(--giverny-ink) !important;
-        border: 1px solid rgba(143, 179, 154, 0.22) !important;
-        border-radius: 20px 20px 4px 20px !important;
-        padding: 1.1rem 1.3rem !important;
-        max-width: 88% !important;
+        border: 1px solid rgba(107, 158, 143, 0.28) !important;
+        border-radius: 22px 22px 6px 22px !important;
+        padding: 1.15rem 1.35rem !important;
+        max-width: 85% !important;
         margin-left: auto !important;
-        box-shadow: 0 5px 16px rgba(58, 82, 72, 0.05) !important;
+        box-shadow: var(--monet-shadow-soft) !important;
     }
     div[data-testid="stChatMessage"]:has(div[data-testid="stChatMessageAvatarAssistant"]) {
-        background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(250,248,245,0.96)) !important;
-        border: 1px solid rgba(143, 179, 154, 0.22) !important;
-        border-radius: 20px 20px 20px 4px !important;
+        background: linear-gradient(145deg, rgba(255,253,250,0.97), rgba(240,248,244,0.94), rgba(232,245,238,0.9)) !important;
+        border: 1px solid rgba(143, 179, 154, 0.24) !important;
+        border-radius: 22px 22px 22px 6px !important;
         color: var(--giverny-ink) !important;
-        max-width: 96% !important;
-        padding: 1.2rem 1.4rem !important;
-        box-shadow: 0 5px 18px rgba(58, 82, 72, 0.04) !important;
-        line-height: 1.65 !important;
+        max-width: 92% !important;
+        padding: 1.25rem 1.45rem !important;
+        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+        line-height: 1.7 !important;
     }
     div[data-testid="stChatMessage"] .stMarkdown {
         line-height: 1.65 !important;
@@ -1068,7 +1089,7 @@ def do_login(user_id: str, user_name: str, test_round: str = "round_1"):
             "This coach is designed for **English learners at every level** — with strong support for "
             "**IELTS** and **TOEFL** writing, plus CET and creative rubrics.\n\n"
             "Share your topic (or say you have no idea — I'll offer prompts from our question bank).\n\n"
-            "**Click Plan · Draft · Evaluation · Interaction** on the left to begin each step.\n\n"
+            "**Click Plan · Draft · Evaluation · Interaction** above the chat to begin each step.\n\n"
             "---\n🪷 *Your writing garden — one thoughtful step at a time.*"
         )
     })
@@ -1113,19 +1134,21 @@ def inject_css_block(css: str) -> None:
 
 def inject_step_button_styles(active_step: str) -> None:
     """Giverny step styles — optimized for Streamlit 1.57 (.st-key-* selectors)."""
-    active_bg = "linear-gradient(155deg, #4a735f 0%, #6d9a7e 50%, #5f8a72 100%)"
-    inactive_bg = "linear-gradient(155deg, #d8e4dc 0%, #e8e0d4 45%, #ddd4e8 100%)"
+    active_bg = "linear-gradient(155deg, #3d6b56 0%, #5f8a72 40%, #6b9e8f 100%)"
+    inactive_bg = "linear-gradient(155deg, rgba(232,245,238,0.95) 0%, rgba(240,232,248,0.85) 45%, rgba(255,252,248,0.9) 100%)"
     btn_props = """
         width: 100% !important;
         height: var(--step-h) !important;
         min-height: var(--step-h) !important;
         max-height: var(--step-h) !important;
-        padding: 0 0.5rem !important;
+        padding: 0 0.65rem !important;
         margin: 0 !important;
-        border-radius: 14px !important;
+        border-radius: 16px !important;
         font-weight: 600 !important;
-        font-size: 0.8rem !important;
+        font-size: 0.82rem !important;
+        font-family: var(--font-body) !important;
         line-height: 1.1 !important;
+        letter-spacing: 0.02em !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
@@ -1133,7 +1156,7 @@ def inject_step_button_styles(active_step: str) -> None:
         align-items: center !important;
         justify-content: center !important;
         box-sizing: border-box !important;
-        transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease !important;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, opacity 0.22s ease !important;
     """
     rules = [
         """
@@ -1159,19 +1182,17 @@ def inject_step_button_styles(active_step: str) -> None:
         on = step == active_step
         bg = active_bg if on else inactive_bg
         color = "#ffffff" if on else "#3a5248"
-        border = "2px solid rgba(180, 220, 195, 0.9)" if on else "1px solid rgba(143, 179, 154, 0.35)"
-        shadow = "0 6px 20px rgba(74, 115, 95, 0.38)" if on else "0 2px 8px rgba(58, 82, 72, 0.08)"
-        transform = "translateY(-2px) scale(1.02)" if on else "none"
-        opacity = "1" if on else "0.88"
+        border = "1.5px solid rgba(180, 220, 195, 0.85)" if on else "1px solid rgba(200,184,216,0.35)"
+        shadow = "0 8px 28px rgba(61, 107, 86, 0.32), inset 0 1px 0 rgba(255,255,255,0.25)" if on else "0 3px 12px rgba(47,74,64,0.06), inset 0 1px 0 rgba(255,255,255,0.7)"
+        transform = "translateY(-2px)" if on else "none"
+        opacity = "1" if on else "0.92"
         col_sel = (
-            f'div:has(> #sticky-step-bar-marker) + div '
+            f'div:has(> #step-buttons-marker) + div '
             f'[data-testid="column"]:nth-child({col_idx[step]}) button'
         )
-        for suffix in ("", "_panel", "_bar"):
+        for suffix in ("",):
             sk = _st_key(key + suffix)
-            block = f"{sk} button, {sk} [data-testid='stBaseButton-secondary'], {sk} [data-testid='stBaseButton-primary']"
-            if suffix == "_bar":
-                block += f", {col_sel}"
+            block = f"{sk} button, {sk} [data-testid='stBaseButton-secondary'], {sk} [data-testid='stBaseButton-primary'], {col_sel}"
             rules.append(f"""
         {block} {{
             {btn_props}
@@ -1195,7 +1216,7 @@ def inject_step_button_styles(active_step: str) -> None:
         }}
         """)
 
-    eval_bg = "linear-gradient(155deg, #5a7d68 0%, #7a9f88 100%)"
+    eval_bg = "linear-gradient(155deg, #5a7d68 0%, #7a9f88 55%, #8fb39a 100%)"
     for key in (
         "btn_eval_feedback", "btn_eval_score_menu",
         "btn_eval_cet", "btn_eval_ielts", "btn_eval_toefl", "btn_eval_creative",
@@ -1236,195 +1257,424 @@ def inject_step_button_styles(active_step: str) -> None:
     inject_css_block("".join(rules))
 
 
-def inject_garden_app_layout_css() -> None:
-    """Fixed left panel + scrollable chat column — full viewport, no page jump."""
-    inject_css_block("""
-    /* ── Garden app shell: lock to viewport ── */
-    .stApp, [data-testid="stAppViewContainer"], .main {
-        overflow: hidden !important;
-        height: 100dvh !important;
-        max-height: 100dvh !important;
+def render_journey_timeline(current_step: str, completed: set, plan_completed: bool) -> str:
+    """Vertical timeline — Monet garden journey with blurbs."""
+    icons = {"plan": "📋", "draft": "✍️", "evaluating": "📊", "interaction": "💬"}
+    blurbs = {
+        "plan": "Goals, thesis & outline",
+        "draft": "Write & self-check",
+        "evaluating": "IELTS · TOEFL rubrics",
+        "interaction": "Reflect & discuss",
     }
+    parts = ['<div class="journey-timeline">']
+    for i, key in enumerate(STEPS, start=1):
+        if key == current_step:
+            state = "active"
+        elif key in completed or (key == "plan" and plan_completed):
+            state = "done"
+        else:
+            state = "upcoming"
+        parts.append(f"""
+        <div class="tl-item tl-{state}">
+            <div class="tl-rail"><span class="tl-dot"></span></div>
+            <div class="tl-content">
+                <span class="tl-num">{i:02d}</span>
+                <strong>{icons[key]} {STEP_LABELS[key]}</strong>
+                <span class="tl-blurb">{blurbs[key]}</span>
+            </div>
+        </div>""")
+    parts.append("</div>")
+    return "".join(parts)
+
+
+def inject_garden_app_layout_css() -> None:
+    """Monet Giverny studio — glass panels, pond light, painterly rails."""
+    inject_css_block("""
+    section[data-testid="stSidebar"],
+    [data-testid="collapsedControl"] { display: none !important; }
+
     .block-container {
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.35rem !important;
-        max-width: 100% !important;
-        height: calc(100dvh - 0.5rem) !important;
-        max-height: calc(100dvh - 0.5rem) !important;
-        overflow: hidden !important;
+        padding: 0.85rem 1.75rem 2.5rem !important;
+        max-width: 1480px !important;
     }
     div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
-        height: calc(100dvh - 1rem) !important;
-        max-height: calc(100dvh - 1rem) !important;
-        align-items: stretch !important;
-        gap: 0.85rem !important;
-        overflow: hidden !important;
+        align-items: flex-start !important;
+        gap: 0 !important;
+        position: relative;
     }
 
-    /* ── Left studio panel: fixed, full height, internal scroll ── */
+    /* ── Left rail: lily pond panel ── */
     [data-testid="column"]:has(#studio-column-marker) {
-        position: relative !important;
-        flex: 0 0 min(340px, 32vw) !important;
-        max-width: 340px !important;
-        height: calc(100dvh - 1rem) !important;
-        max-height: calc(100dvh - 1rem) !important;
+        flex: 0 0 min(400px, 34vw) !important;
+        max-width: 420px !important;
+        position: sticky !important;
+        top: 0.85rem !important;
+        align-self: flex-start !important;
+        max-height: calc(100dvh - 1.75rem) !important;
         overflow-y: auto !important;
-        overflow-x: hidden !important;
-        background:
-            radial-gradient(ellipse at 20% 10%, rgba(200,184,216,0.18), transparent 55%),
-            radial-gradient(ellipse at 80% 90%, rgba(168,197,160,0.15), transparent 50%),
-            linear-gradient(175deg, rgba(255,253,250,0.96), rgba(232,245,238,0.92)) !important;
-        border: 1px solid rgba(143, 179, 154, 0.32) !important;
-        border-radius: 26px !important;
-        padding: 0.85rem 0.75rem 0.75rem !important;
-        box-shadow: 0 16px 48px rgba(58, 82, 72, 0.1), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+        padding: 1.1rem 1.75rem 1.25rem 0.5rem !important;
+        margin-right: 0 !important;
+        border-right: none !important;
+        background: transparent !important;
         scrollbar-width: thin;
-        scrollbar-color: rgba(95,138,114,0.35) transparent;
+        scrollbar-color: rgba(107,158,143,0.3) transparent;
     }
-    [data-testid="column"]:has(#studio-column-marker)::-webkit-scrollbar { width: 4px; }
-    [data-testid="column"]:has(#studio-column-marker)::-webkit-scrollbar-thumb {
-        background: rgba(95,138,114,0.35); border-radius: 4px;
+    [data-testid="column"]:has(#studio-column-marker)::after {
+        content: '';
+        position: absolute;
+        top: 0; bottom: 0; right: 0;
+        width: 2px;
+        background: linear-gradient(180deg,
+            transparent 0%,
+            rgba(139,184,212,0.35) 15%,
+            rgba(107,158,143,0.45) 50%,
+            rgba(200,184,216,0.35) 85%,
+            transparent 100%);
+        border-radius: 2px;
     }
 
-    /* ── Right chat column: flex column, messages scroll, input pinned ── */
+    .studio-hero {
+        margin-bottom: 1.15rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid rgba(143,179,154,0.15);
+    }
+    .studio-hero-title {
+        font-family: var(--font-display);
+        font-size: clamp(2.35rem, 4.8vw, 3.35rem) !important;
+        font-weight: 700;
+        line-height: 1.05;
+        color: var(--giverny-ink);
+        margin: 0.25rem 0 0.4rem;
+        letter-spacing: -0.01em;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+    }
+    .studio-hero-sub {
+        font-size: 0.9rem;
+        color: var(--giverny-muted);
+        margin: 0;
+        font-style: italic;
+        letter-spacing: 0.02em;
+    }
+
+    .studio-user-card {
+        background: linear-gradient(145deg,
+            rgba(255,252,248,0.92) 0%,
+            rgba(232,245,238,0.85) 50%,
+            rgba(240,232,248,0.75) 100%);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,0.65);
+        border-radius: 22px;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1.1rem;
+        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.9);
+        position: relative;
+        overflow: hidden;
+    }
+    .studio-user-card::before {
+        content: '';
+        position: absolute;
+        top: -30%; right: -20%;
+        width: 55%; height: 80%;
+        background: radial-gradient(circle, rgba(139,184,212,0.18), transparent 65%);
+        pointer-events: none;
+    }
+    .studio-user-card .user-name {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--giverny-ink);
+        position: relative;
+    }
+    .studio-user-card .user-meta {
+        font-size: 0.8rem;
+        color: var(--giverny-muted);
+        margin-top: 0.25rem;
+        line-height: 1.5;
+        position: relative;
+    }
+
+    .studio-progress-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--giverny-pond);
+        margin: 0 0 0.55rem;
+    }
+
+    /* Timeline — watercolor steps */
+    .journey-timeline { margin: 0.35rem 0 0.85rem; }
+    .tl-item { display: flex; gap: 0.75rem; margin-bottom: 0.2rem; }
+    .tl-rail {
+        width: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 0.5rem;
+    }
+    .tl-dot {
+        width: 11px; height: 11px;
+        border-radius: 50%;
+        background: rgba(143,179,154,0.4);
+        border: 2px solid rgba(255,255,255,0.95);
+        box-shadow: 0 0 0 1px rgba(143,179,154,0.25);
+    }
+    .tl-item:not(:last-child) .tl-rail::after {
+        content: '';
+        flex: 1;
+        width: 2px;
+        min-height: 32px;
+        background: linear-gradient(180deg, rgba(139,184,212,0.4), rgba(200,184,216,0.2));
+        margin-top: 5px;
+        border-radius: 2px;
+    }
+    .tl-content {
+        flex: 1;
+        padding: 0.45rem 0.75rem 0.6rem;
+        border-radius: 16px;
+        transition: all 0.25s ease;
+    }
+    .tl-content strong {
+        font-family: var(--font-display);
+        font-size: 1.12rem;
+        font-weight: 600;
+        color: var(--giverny-ink);
+        display: block;
+    }
+    .tl-blurb {
+        display: block;
+        font-size: 0.74rem;
+        color: var(--giverny-muted);
+        margin-top: 0.12rem;
+        font-style: italic;
+    }
+    .tl-num {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: rgba(107,158,143,0.5);
+        margin-bottom: 0.08rem;
+        display: block;
+    }
+    .tl-active .tl-dot {
+        background: linear-gradient(145deg, #4a735f, #6b9e8f);
+        box-shadow: 0 0 0 4px rgba(107,158,143,0.18), 0 2px 8px rgba(74,115,95,0.25);
+        transform: scale(1.15);
+    }
+    .tl-active .tl-content {
+        background: linear-gradient(135deg,
+            rgba(232,245,238,0.95),
+            rgba(255,252,248,0.88),
+            rgba(240,232,248,0.6));
+        border: 1px solid rgba(95,138,114,0.3);
+        box-shadow: var(--monet-shadow-soft);
+    }
+    .tl-done .tl-dot {
+        background: linear-gradient(145deg, #5f8a72, #8fb39a);
+    }
+    .tl-done .tl-content strong { color: var(--giverny-pond); }
+
+    .studio-guide-box {
+        background: linear-gradient(135deg, rgba(107,158,143,0.1), rgba(200,184,216,0.08));
+        border: 1px solid rgba(107,158,143,0.18);
+        border-radius: 18px;
+        padding: 0.85rem 1rem;
+        font-size: 0.86rem;
+        line-height: 1.6;
+        color: var(--giverny-ink);
+        margin-bottom: 0.85rem;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .studio-guide-box strong {
+        font-family: var(--font-display);
+        font-size: 1.08rem;
+        display: block;
+        margin-bottom: 0.3rem;
+        color: var(--giverny-pond);
+    }
+    .studio-actions {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(143,179,154,0.18);
+    }
+
+    /* Progress bar — pond gradient */
+    [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div {
+        background: rgba(143,179,154,0.15) !important;
+        border-radius: 999px !important;
+        overflow: hidden;
+    }
+    [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div > div {
+        background: linear-gradient(90deg, #5f8a72, #6b9e8f, #8bb8d4, #c8b8d8) !important;
+        border-radius: 999px !important;
+    }
+
+    /* ── Right: glass writing atelier ── */
     [data-testid="column"]:has(#chat-column-marker) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
-        height: calc(100dvh - 1rem) !important;
-        max-height: calc(100dvh - 1rem) !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
+        padding: 0.5rem 0.5rem 1rem 1.75rem !important;
         background:
-            radial-gradient(ellipse at 90% 15%, rgba(184,212,232,0.2), transparent 50%),
-            radial-gradient(ellipse at 10% 85%, rgba(221,184,200,0.12), transparent 45%),
-            linear-gradient(160deg, rgba(255,253,250,0.55), rgba(250,246,239,0.45)) !important;
-        border: 1px solid rgba(143, 179, 154, 0.2) !important;
-        border-radius: 26px !important;
-        padding: 0.65rem 0.85rem 0.55rem !important;
-        box-shadow: 0 12px 40px rgba(58, 82, 72, 0.07) !important;
+            linear-gradient(155deg,
+                rgba(255,253,250,0.55) 0%,
+                rgba(240,248,244,0.4) 40%,
+                rgba(248,240,252,0.35) 100%) !important;
+        border: 1px solid rgba(255,255,255,0.5) !important;
+        border-radius: 32px !important;
+        box-shadow: var(--monet-shadow), inset 0 1px 0 rgba(255,255,255,0.75) !important;
+        backdrop-filter: blur(16px) saturate(1.2) !important;
+        height: auto !important;
+        overflow: visible !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
-        height: 100% !important;
-        max-height: 100% !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        display: block !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        scroll-behavior: smooth !important;
-        scrollbar-width: thin;
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        padding: 0.25rem 0.5rem !important;
     }
-    div:has(> #sticky-step-bar-marker),
-    div:has(> .garden-step-prompt) {
+
+    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
         position: sticky !important;
         top: 0 !important;
-        z-index: 21 !important;
-        background: linear-gradient(180deg, rgba(250,246,239,0.99), rgba(250,246,239,0.92)) !important;
-    }
-    div:has(> .garden-step-prompt) + div[data-testid="stHorizontalBlock"] {
-        position: sticky !important;
-        top: 2.1rem !important;
-        z-index: 20 !important;
-        background: rgba(250,246,239,0.97) !important;
-        padding-bottom: 0.35rem !important;
-        margin-bottom: 0.25rem !important;
-    }
-    #chat-scroll-region-start { display: none !important; }
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatInput"] {
-        position: sticky !important;
-        bottom: 0 !important;
-        z-index: 15 !important;
-        background: linear-gradient(0deg, rgba(250,246,239,0.99) 80%, rgba(250,246,239,0)) !important;
-        padding-top: 0.5rem !important;
-        margin-top: 0.5rem !important;
+        z-index: 30 !important;
+        background: linear-gradient(180deg,
+            rgba(253,249,243,0.98) 0%,
+            rgba(253,249,243,0.95) 75%,
+            rgba(253,249,243,0) 100%) !important;
+        padding: 0.5rem 0 0.75rem !important;
+        margin-bottom: 0.35rem !important;
+        border-bottom: 1px solid rgba(143,179,154,0.12) !important;
+        border-radius: 0 0 20px 20px;
     }
 
-    /* Monet chat bubbles */
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
-        margin-bottom: 0.75rem !important;
+    .chat-studio-header {
+        margin-bottom: 1rem;
+        padding: 0.85rem 1.1rem;
+        border-radius: 20px;
+        background: linear-gradient(135deg,
+            rgba(255,252,248,0.85),
+            rgba(232,245,238,0.7),
+            rgba(240,232,248,0.5));
+        border: 1px solid rgba(255,255,255,0.6);
+        box-shadow: var(--monet-shadow-soft);
     }
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
-        background: linear-gradient(135deg, rgba(255,253,250,0.98), rgba(238,244,240,0.95)) !important;
-        border: 1px solid rgba(143,179,154,0.25) !important;
-        box-shadow: 0 6px 20px rgba(58,82,72,0.06) !important;
-    }
-    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
-        background: linear-gradient(135deg, rgba(232,245,238,0.95), rgba(216,232,220,0.9)) !important;
-        border: 1px solid rgba(107,158,143,0.28) !important;
-    }
-
-    .garden-step-prompt {
-        text-align: center;
-        font-family: var(--font-display);
-        font-size: 0.95rem;
+    .chat-studio-header .step-pill {
+        display: inline-block;
+        padding: 0.3rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(107,158,143,0.12);
+        border: 1px solid rgba(107,158,143,0.25);
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
         color: var(--giverny-pond);
-        letter-spacing: 0.04em;
-        margin: 0 0 0.35rem;
-        padding: 0.35rem 0.5rem;
-        border-radius: 12px;
-        background: rgba(107,158,143,0.08);
-        border: 1px dashed rgba(107,158,143,0.25);
     }
-    .chat-header-bar {
-        border-radius: 18px !important;
-        margin-bottom: 0.5rem !important;
-        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.88)) !important;
-        border: 1px solid rgba(143,179,154,0.22) !important;
-        box-shadow: 0 4px 16px rgba(58,82,72,0.05) !important;
-        padding: 0.65rem 1rem !important;
-    }
-    .chat-header-bar .header-title {
+    .chat-studio-header h2 {
         font-family: var(--font-display);
-        background: linear-gradient(120deg, #4a735f, #6b9e8f, #8bb8d4);
+        font-size: clamp(1.65rem, 2.8vw, 2.25rem);
+        font-weight: 600;
+        margin: 0.35rem 0 0.15rem;
+        background: linear-gradient(125deg, #3d6b56, #6b9e8f, #8bb8d4);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
+    .chat-studio-sub {
+        font-size: 0.82rem;
+        color: var(--giverny-muted);
+        font-style: italic;
+        margin-top: 0.15rem;
+    }
+
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"] {
+        margin-bottom: 1rem !important;
+        animation: fadeUp 0.45s ease-out;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+        background: linear-gradient(145deg,
+            rgba(255,253,250,0.98),
+            rgba(238,248,244,0.95),
+            rgba(232,240,252,0.85)) !important;
+        border: 1px solid rgba(200,184,216,0.2) !important;
+        border-radius: 24px 24px 24px 8px !important;
+        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.85) !important;
+        padding: 1.3rem 1.5rem !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        background: linear-gradient(145deg,
+            rgba(232,245,238,0.96),
+            rgba(216,232,220,0.9),
+            rgba(200,220,210,0.85)) !important;
+        border: 1px solid rgba(107,158,143,0.22) !important;
+        border-radius: 24px 24px 8px 24px !important;
+        box-shadow: var(--monet-shadow-soft) !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) div[data-testid="stChatInput"] {
+        margin-top: 1rem !important;
+        border-radius: 24px !important;
+        border: 1.5px solid rgba(95,138,114,0.35) !important;
+        background: linear-gradient(135deg, rgba(255,253,250,0.95), rgba(242,248,243,0.92)) !important;
+        box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+        backdrop-filter: blur(8px) !important;
+    }
+    [data-testid="column"]:has(#chat-column-marker) .stCaption {
+        text-align: center;
+        font-size: 0.72rem !important;
+        color: var(--giverny-muted) !important;
+        letter-spacing: 0.04em;
+        margin-top: 0.65rem !important;
+        opacity: 0.85;
+    }
+
+    .eval-pick-box {
+        background: linear-gradient(135deg, rgba(255,252,248,0.9), rgba(232,245,238,0.75)) !important;
+        border: 1px solid rgba(143,179,154,0.22) !important;
+        border-radius: 18px !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7) !important;
+    }
+    .eval-pick-title {
+        font-family: var(--font-display) !important;
+        font-size: 1.05rem !important;
+        color: var(--giverny-ink) !important;
+    }
 
     @media (max-width: 900px) {
-        div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
-            flex-direction: column !important;
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-        }
-        [data-testid="column"]:has(#studio-column-marker),
-        [data-testid="column"]:has(#chat-column-marker) {
+        [data-testid="column"]:has(#studio-column-marker) {
+            position: relative !important;
             max-width: 100% !important;
-            flex: 1 1 auto !important;
-            height: auto !important;
             max-height: none !important;
+            padding: 0 0 1.25rem !important;
+            margin-bottom: 0.75rem !important;
+            border-bottom: 1px solid rgba(143,179,154,0.2) !important;
         }
+        [data-testid="column"]:has(#studio-column-marker)::after { display: none; }
         [data-testid="column"]:has(#chat-column-marker) {
-            min-height: 65dvh !important;
-        }
-        div:has(> #chat-scroll-region-start) { max-height: none !important; }
-        .stApp, [data-testid="stAppViewContainer"], .main, .block-container {
-            height: auto !important;
-            max-height: none !important;
-            overflow: auto !important;
+            padding: 1rem !important;
+            border-radius: 24px !important;
         }
     }
     """)
 
 
 def inject_autoscroll_to_latest() -> None:
-    """Scroll chat region to latest message after each rerun."""
     html = """
     <script>
     (function () {
-        const doc = window.parent.document;
+        const win = window.parent;
+        const doc = win.document;
         function scrollLatest() {
-            const vb = doc.querySelector('[data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"]');
-            if (vb) vb.scrollTop = vb.scrollHeight;
             const msgs = doc.querySelectorAll('[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatMessage"]');
-            if (msgs.length) msgs[msgs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
+            if (msgs.length) {
+                msgs[msgs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+            const chatInput = doc.querySelector('[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatInput"]');
+            if (chatInput) chatInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            win.scrollTo({ top: doc.body.scrollHeight, behavior: 'smooth' });
         }
         scrollLatest();
-        setTimeout(scrollLatest, 200);
-        setTimeout(scrollLatest, 600);
-        setTimeout(scrollLatest, 1200);
+        setTimeout(scrollLatest, 300);
+        setTimeout(scrollLatest, 800);
     })();
     </script>
     """
@@ -1871,36 +2121,40 @@ def main_app():
 
     inject_step_button_styles(cur)
     inject_garden_app_layout_css()
-    st.markdown("""
-    <style>
-    section[data-testid="stSidebar"] { display: none !important; }
-    [data-testid="collapsedControl"] { display: none !important; }
-    </style>
-    """, unsafe_allow_html=True)
 
     st.markdown('<div class="app-shell-marker"></div>', unsafe_allow_html=True)
-    col_panel, col_chat = st.columns([1, 2.4], gap="medium")
+    col_panel, col_chat = st.columns([1, 2.5], gap="small")
 
     with col_panel:
         st.markdown('<div id="studio-column-marker"></div>', unsafe_allow_html=True)
         st.markdown("""
-        <div class="panel-brand">
-            <span style="font-size:1.5rem;">🪷</span>
-            <h3>SRL Writing Coach</h3>
-            <p>Monet Garden · IELTS & TOEFL</p>
+        <div class="studio-hero">
+            <div class="section-label">Giverny · Writing Atelier</div>
+            <h1 class="studio-hero-title">SRL Writing<br><span class="gradient-text">Coach</span></h1>
+            <p class="studio-hero-sub">🪷 Where words bloom like water lilies</p>
+        </div>
+        <div class="monet-ornament">· · ·</div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="studio-user-card">
+            <div class="user-name">{st.session_state.user_name}</div>
+            <div class="user-meta">{st.session_state.user_id}<br>{round_label}</div>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown(f"**{st.session_state.user_name}**")
-        st.caption(f"{st.session_state.user_id} · {round_label}")
-        st.progress(progress, text=f"{len(completed)}/{len(STEPS)} steps")
+        st.markdown('<p class="studio-progress-label">Your journey</p>', unsafe_allow_html=True)
+        st.markdown(
+            render_journey_timeline(cur, completed, st.session_state.plan_completed),
+            unsafe_allow_html=True,
+        )
+        st.progress(progress, text=f"{len(completed)} of {len(STEPS)} steps touched")
 
-        st.markdown("---")
-        st.markdown("**Choose a step**")
-        render_step_button("plan", "📋", action_plan, "_panel")
-        render_step_button("draft", "✍️", action_draft, "_panel")
-        render_step_button("evaluating", "📊", action_open_evaluation, "_panel")
-        render_step_button("interaction", "💬", action_interaction, "_panel")
+        st.markdown(
+            f'<div class="studio-guide-box"><strong>💡 {STEP_LABELS.get(cur, cur)}</strong>{tip}</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption(f"Draft self-checks: **{st.session_state.monitoring_count}**")
 
         if st.session_state.show_draft_choice and cur in {"plan", "draft"}:
             st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
@@ -1929,46 +2183,39 @@ def main_app():
                           key="btn_eval_creative", type="secondary")
             st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown(
-            f'<div class="studio-tip-box"><strong>💡 {STEP_LABELS.get(cur, cur)}</strong><br>{tip}</div>',
-            unsafe_allow_html=True,
-        )
-        st.metric("Draft checks", st.session_state.monitoring_count)
-
-        st.markdown("---")
+        st.markdown('<div class="studio-actions">', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
-            st.button("🔄 Reset", use_container_width=True, on_click=action_reset, key="btn_reset", type="secondary")
-        with c2:
-            if st.button("💾 Save", use_container_width=True, key="btn_save", type="secondary"):
+            if st.button("💾 Save", use_container_width=True, key="btn_save", type="primary"):
                 if save_current_session():
                     st.toast("Saved 🌸", icon="✅")
+                else:
+                    st.toast("Nothing to save yet.", icon="💡")
+        with c2:
+            st.button("🔄 Reset", use_container_width=True, on_click=action_reset, key="btn_reset", type="secondary")
         if st.button("Sign out", use_container_width=True, key="btn_signout"):
             do_logout()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_chat:
         st.markdown('<div id="chat-column-marker"></div>', unsafe_allow_html=True)
 
-        st.markdown('<div id="sticky-step-bar-marker"></div>', unsafe_allow_html=True)
-        st.markdown(
-            '<p class="garden-step-prompt">🌿 Tap a step to begin — Plan · Draft · Evaluation · Interaction</p>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div id="step-buttons-marker"></div>', unsafe_allow_html=True)
         bc1, bc2, bc3, bc4 = st.columns(4, gap="small")
         with bc1:
-            render_step_button("plan", "📋", action_plan, "_bar")
+            render_step_button("plan", "📋", action_plan)
         with bc2:
-            render_step_button("draft", "✍️", action_draft, "_bar")
+            render_step_button("draft", "✍️", action_draft)
         with bc3:
-            render_step_button("evaluating", "📊", action_open_evaluation, "_bar")
+            render_step_button("evaluating", "📊", action_open_evaluation)
         with bc4:
-            render_step_button("interaction", "💬", action_interaction, "_bar")
+            render_step_button("interaction", "💬", action_interaction)
 
         st.markdown(f"""
-        <div class="chat-header-bar">
+        <div class="chat-studio-header">
             <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
-            <h2 class="header-title" style="margin:0.25rem 0 0;">Writing Studio</h2>
-            <div class="header-meta">{st.session_state.user_name} · {round_label}</div>
+            <h2>Writing Studio</h2>
+            <p class="chat-studio-sub">Choose a step above, then paint your words below</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1977,7 +2224,7 @@ def main_app():
                 st.markdown(msg["content"])
 
         st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
-        st.caption("⚡ DeepSeek · 🎓 SRL · 📝 IELTS & TOEFL · 🌸 Your words, your voice")
+        st.caption("🪷 Monet Garden · ⚡ DeepSeek · 📝 IELTS & TOEFL · Your words, your voice")
 
     inject_autoscroll_to_latest()
 
