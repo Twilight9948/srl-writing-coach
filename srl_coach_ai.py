@@ -422,7 +422,9 @@ st.markdown("""
     .block-container {
         padding-top: 1.2rem !important;
         padding-bottom: 3rem !important;
-        max-width: 1180px !important;
+        max-width: 1320px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 
     [data-testid="stSidebar"] {
@@ -618,8 +620,9 @@ st.markdown("""
     }
 
     .chat-header-bar {
-        max-width: 920px;
-        margin: 0 auto 0.85rem;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 0.85rem;
         background: linear-gradient(135deg, rgba(255,252,248,0.92), rgba(232,245,238,0.82));
         border: 1px solid rgba(143, 179, 154, 0.22);
         border-radius: 22px;
@@ -657,30 +660,121 @@ st.markdown("""
         color: var(--giverny-pond);
     }
     .chat-stage {
-        max-width: 920px;
-        margin: 0 auto;
+        width: 100%;
         min-height: 42vh;
     }
-    .chat-stage-marker {
-        display: none;
+    .studio-panel {
+        background: linear-gradient(165deg, rgba(255,253,250,0.94), rgba(232,245,238,0.88));
+        border: 1px solid rgba(143, 179, 154, 0.28);
+        border-radius: 24px;
+        padding: 1.15rem 1.1rem 1rem;
+        box-shadow: 0 12px 36px rgba(58, 82, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.85);
     }
-    div:has(> .chat-stage-marker) {
-        max-width: 920px !important;
+    .studio-panel .panel-brand {
+        text-align: center;
+        padding-bottom: 0.65rem;
+        margin-bottom: 0.65rem;
+        border-bottom: 1px solid rgba(143, 179, 154, 0.2);
+    }
+    .studio-panel .panel-brand h3,
+    .panel-brand h3 {
+        font-family: var(--font-display);
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0.15rem 0 0;
+        color: var(--giverny-ink);
+    }
+    .panel-brand p {
+        font-size: 0.72rem;
+        color: var(--giverny-muted);
+        margin: 0.2rem 0 0;
+    }
+    [data-testid="column"]:has(#studio-column-marker) {
+        background: linear-gradient(165deg, rgba(255,253,250,0.94), rgba(232,245,238,0.88));
+        border: 1px solid rgba(143, 179, 154, 0.28);
+        border-radius: 24px;
+        padding: 1rem 0.9rem 0.85rem !important;
+        box-shadow: 0 12px 36px rgba(58, 82, 72, 0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+        align-self: flex-start;
+    }
+    [data-testid="column"]:has(#studio-column-marker) .panel-brand {
+        text-align: center;
+        padding-bottom: 0.65rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(143, 179, 154, 0.2);
+    }
+    .studio-step-card {
+        background: rgba(255,255,255,0.62);
+        border: 1px solid rgba(143, 179, 154, 0.18);
+        border-radius: 14px;
+        padding: 0.55rem 0.65rem;
+        margin-bottom: 0.45rem;
+        font-size: 0.78rem;
+        color: var(--giverny-muted);
+        line-height: 1.4;
+    }
+    .studio-step-card.active {
+        border-color: rgba(95, 138, 114, 0.45);
+        background: rgba(232, 245, 238, 0.75);
+        color: var(--giverny-ink);
+    }
+    .studio-step-card.done {
+        border-color: rgba(95, 138, 114, 0.3);
+    }
+    .studio-step-card strong {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        color: var(--giverny-ink);
+    }
+    .studio-tip-box {
+        background: rgba(107, 158, 143, 0.1);
+        border: 1px solid rgba(107, 158, 143, 0.22);
+        border-radius: 14px;
+        padding: 0.65rem 0.75rem;
+        font-size: 0.82rem;
+        color: var(--giverny-ink);
+        line-height: 1.5;
+        margin: 0.5rem 0 0.65rem;
+    }
+    .studio-user-chip {
+        font-size: 0.78rem;
+        color: var(--giverny-muted);
+        margin: 0.15rem 0;
+    }
+    #chat-column-marker,
+    #studio-column-marker,
+    .chat-stage-marker {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .app-shell-marker { display: none !important; }
+    div:has(> .app-shell-marker) {
+        max-width: 1320px !important;
         margin-left: auto !important;
         margin-right: auto !important;
     }
-    [data-testid="stSidebar"] .sidebar-brand {
-        text-align: center;
-        padding: 0.5rem 0 0.25rem;
+    div:has(> #chat-column-marker) > [data-testid="stVerticalBlock"] {
+        max-width: 860px;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 100%;
     }
-    [data-testid="stSidebar"] .eval-pick-box {
-        padding: 0.55rem 0.65rem;
-        margin: 0.35rem 0;
-        border-radius: 14px;
+    .logged-in-hide-sidebar [data-testid="stSidebar"],
+    .logged-in-hide-sidebar [data-testid="collapsedControl"],
+    .logged-in-hide-sidebar button[kind="header"] {
+        display: none !important;
     }
-    [data-testid="stSidebar"] .eval-pick-title {
-        font-size: 0.88rem;
-        margin-bottom: 0.35rem;
+    .logged-in-hide-sidebar .block-container {
+        padding-top: 1rem !important;
+        max-width: 1320px !important;
+        margin: 0 auto !important;
+    }
+    .main-step-row-marker { display: none; }
+    div:has(> .main-step-row-marker) + div [data-testid="stHorizontalBlock"] {
+        max-width: 860px;
+        margin: 0 auto 0.75rem !important;
     }
     .intro-text {
         text-align: center;
@@ -971,10 +1065,10 @@ def do_login(user_id: str, user_name: str, test_round: str = "round_1"):
         "role": "assistant",
         "content": (
             f"👋 **Welcome, {user_name}!**\n\n"
-            "This coach is designed for **graduate-level academic English** — especially "
-            "**IELTS Task 2** and **TOEFL independent writing**.\n\n"
-            "Share your essay topic (or say you have no idea — I'll offer prompts from our "
-            "**2026 IELTS question bank**), then we'll begin with **Step 1: Plan**.\n\n"
+            "This coach is designed for **English learners at every level** — with strong support for "
+            "**IELTS** and **TOEFL** writing, plus CET and creative rubrics.\n\n"
+            "Share your topic (or say you have no idea — I'll offer prompts from our question bank), "
+            "then we'll begin with **Step 1: Plan**.\n\n"
             "---\n🪷 *Your writing garden — one thoughtful step at a time.*"
         )
     })
@@ -1149,15 +1243,14 @@ def show_login_page():
     with col_hero:
         st.markdown("""
         <div class="animate-in">
-            <div class="hero-eyebrow">Graduate English · IELTS & TOEFL · SRL</div>
+            <div class="hero-eyebrow">English Writing · IELTS & TOEFL · SRL</div>
             <div class="monet-title" style="margin-bottom:0.75rem;">
-                Your academic voice<br>
+                Your voice<br>
                 <span class="gradient-text">in the writing garden</span>
             </div>
             <div class="monet-subtitle" style="max-width:520px;line-height:1.65;margin-bottom:0.5rem;">
-                Built for Capital Normal University graduate research participants.
-                An AI coach for <strong>IELTS Task 2</strong> and <strong>TOEFL</strong> writing —
-                guiding, never ghostwriting.
+                For all English learners — with strong support for <strong>IELTS</strong> and
+                <strong>TOEFL</strong> writing. An AI coach that guides, never ghostwrites.
             </div>
             <div class="journey-grid">
                 <div class="journey-card">
@@ -1182,8 +1275,8 @@ def show_login_page():
                 </div>
             </div>
             <div class="trust-row">
-                <span class="trust-item">🎓 ~200 grad participants</span>
-                <span class="trust-item">📝 IELTS 2026 bank</span>
+                <span class="trust-item">🎓 All English learners</span>
+                <span class="trust-item">📝 IELTS & TOEFL</span>
                 <span class="trust-item">✨ DeepSeek AI</span>
                 <span class="trust-item">🔒 Research ethics</span>
             </div>
@@ -1444,8 +1537,7 @@ def main_app():
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
         st.session_state.user_input = (
-            "Step 1 — Plan. Please help me set goals and create an outline for my "
-            "graduate-level English essay (IELTS Task 2 or TOEFL style)."
+            "Step 1 — Plan. Please help me set goals and create an outline for my English essay."
         )
         handle_input()
 
@@ -1474,7 +1566,7 @@ def main_app():
         else:
             st.session_state.user_input = (
                 "Step 2 — Draft. I have a clear topic idea now. Please guide me through "
-                "drafting and self-checking for IELTS/TOEFL academic writing."
+                "drafting and self-checking."
             )
         handle_input()
 
@@ -1485,7 +1577,7 @@ def main_app():
         bank_text = format_ielts_prompts_for_coach(picks)
         st.session_state.user_input = (
             "Step 2 — Draft. I have NO IDEA what to write about.\n\n"
-            "Here are three **IELTS Writing Task 2** prompts from our **2026 research question bank**. "
+            "Here are three **writing prompts** from our **2026 question bank** (IELTS-style). "
             "Please present them clearly, help me choose ONE that interests me, "
             "then guide me through brainstorming and drafting:\n\n"
             f"{bank_text}\n\n"
@@ -1514,9 +1606,8 @@ def main_app():
             return
         text = last_user_writing()
         prompt = (
-            "Step 3 — Evaluation (IELTS Task 2 holistic rubric, feedback only, no score). "
-            "Please evaluate my writing on Task Response, Coherence & Cohesion, "
-            "Lexical Resource, and Grammatical Range & Accuracy."
+            "Step 3 — Evaluation (holistic rubric, feedback only, no score). "
+            "Please evaluate my writing on Task Response, Coherence, Vocabulary, and Grammar."
         )
         if text and len(text) > 30:
             prompt += f"\n\nMy writing:\n{text}"
@@ -1564,13 +1655,13 @@ def main_app():
             "role": "assistant",
             "content": (
                 f"✨ **Fresh start, {st.session_state.user_name}!**\n\n"
-                "Share your IELTS/TOEFL topic — or say you have no idea — "
+                "Tell me your topic — or say you have no idea — "
                 "and we'll begin with **Step 1: Plan**."
             )
         })
         st.rerun()
 
-    def render_step_button(step_key: str, icon: str, on_click):
+    def render_step_button(step_key: str, icon: str, on_click, key_suffix: str = ""):
         n = step_num[step_key]
         short = STEP_BTN_LABEL[step_key]
         is_completed = step_key in st.session_state.completed_steps
@@ -1580,28 +1671,60 @@ def main_app():
             f"{display_icon}  {n} · {short}",
             use_container_width=True,
             on_click=on_click,
-            key=STEP_BUTTON_KEYS[step_key],
+            key=STEP_BUTTON_KEYS[step_key] + key_suffix,
             type="primary" if is_active else "secondary",
         )
 
-    # ── Sidebar: controls & steps ──
-    with st.sidebar:
+    inject_step_button_styles(cur)
+    st.markdown("""
+    <style>
+    section[data-testid="stSidebar"] { display: none !important; }
+    [data-testid="collapsedControl"] { display: none !important; }
+    section.main > div { padding-left: 1rem !important; padding-right: 1rem !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="app-shell-marker"></div>', unsafe_allow_html=True)
+    col_panel, col_chat = st.columns([1, 2.15], gap="large")
+
+    step_icons = {"plan": "📋", "draft": "✍️", "evaluating": "📊", "interaction": "💬"}
+    step_desc = {
+        "plan": "Set goals, thesis & outline",
+        "draft": "Write & self-check in chat",
+        "evaluating": "IELTS · TOEFL · CET feedback",
+        "interaction": "Reflect & discuss progress",
+    }
+
+    with col_panel:
+        st.markdown('<div id="studio-column-marker"></div>', unsafe_allow_html=True)
         st.markdown("""
-        <div class="sidebar-brand">
-            <span style="font-size:1.75rem;">🪷</span><br>
-            <span style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;">
-                SRL Writing Coach
-            </span><br>
-            <span style="font-size:0.7rem;opacity:0.75;">IELTS · TOEFL · Graduate English</span>
+        <div class="panel-brand">
+            <span style="font-size:1.6rem;">🪷</span>
+            <h3>SRL Writing Coach</h3>
+            <p>IELTS & TOEFL · for all English learners</p>
         </div>
         """, unsafe_allow_html=True)
-        st.caption(f"👤 {st.session_state.user_name}")
+
+        st.markdown(f'<p class="studio-user-chip">👤 **{st.session_state.user_name}**</p>', unsafe_allow_html=True)
         st.caption(f"📧 {st.session_state.user_id}")
         st.caption(f"🔄 {round_label}")
-        st.progress(progress, text=f"Path: {len(completed)}/{len(STEPS)} steps")
-        st.divider()
+        st.progress(progress, text=f"Journey: {len(completed)}/{len(STEPS)} steps")
 
         st.markdown("**Your four steps**")
+        for key in STEPS:
+            n = step_num[key]
+            cls = "studio-step-card"
+            if key == cur:
+                cls += " active"
+            elif key in completed or (key == "plan" and st.session_state.plan_completed):
+                cls += " done"
+            done_mark = " ✓" if key in completed or (key == "plan" and st.session_state.plan_completed) else ""
+            st.markdown(
+                f'<div class="{cls}"><strong>{step_icons[key]} Step {n} · {STEP_LABELS[key]}{done_mark}</strong>'
+                f'<br>{step_desc[key]}</div>',
+                unsafe_allow_html=True,
+            )
+
         render_step_button("plan", "📋", action_plan)
         render_step_button("draft", "✍️", action_draft)
         render_step_button("evaluating", "📊", action_open_evaluation)
@@ -1609,53 +1732,25 @@ def main_app():
 
         if st.session_state.show_draft_choice and cur in {"plan", "draft"}:
             st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="eval-pick-title">Draft — pick your path</div>',
-                unsafe_allow_html=True,
-            )
-            st.button(
-                "✨ I have an idea",
-                use_container_width=True,
-                on_click=action_draft_has_idea,
-                key="btn_draft_has_idea",
-                type="primary",
-            )
-            st.caption("Refine your own topic.")
-            st.button(
-                "🤷 I have no idea",
-                use_container_width=True,
-                on_click=action_draft_no_idea,
-                key="btn_draft_no_idea",
-                type="secondary",
-            )
-            st.caption("Get IELTS prompts from our bank.")
+            st.markdown('<div class="eval-pick-title">After Plan — choose next</div>', unsafe_allow_html=True)
+            st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
+                      key="btn_draft_has_idea", type="primary")
+            st.caption("You already know your topic.")
+            st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
+                      key="btn_draft_no_idea", type="secondary")
+            st.caption("Get writing prompts from our bank.")
             st.markdown("</div>", unsafe_allow_html=True)
 
         if st.session_state.show_eval_menu and cur == "evaluating":
             st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="eval-pick-title">Evaluation type</div>',
-                unsafe_allow_html=True,
-            )
-            st.button(
-                "Feedback only",
-                use_container_width=True,
-                on_click=action_evaluating_no_score,
-                key="btn_eval_feedback",
-                type="secondary",
-            )
-            st.button(
-                "Score + feedback",
-                use_container_width=True,
-                on_click=action_show_score_frameworks,
-                key="btn_eval_score_menu",
-                type="secondary",
-            )
+            st.markdown('<div class="eval-pick-title">Evaluation type</div>', unsafe_allow_html=True)
+            st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
+                      key="btn_eval_feedback", type="secondary")
+            st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
+                      key="btn_eval_score_menu", type="secondary")
             if st.session_state.show_eval_score_menu:
-                st.markdown(
-                    '<div class="eval-pick-title" style="margin-top:0.4rem;">Scoring system</div>',
-                    unsafe_allow_html=True,
-                )
+                st.markdown('<div class="eval-pick-title" style="margin-top:0.35rem;">Scoring</div>',
+                            unsafe_allow_html=True)
                 st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
                           key="btn_eval_ielts", type="primary")
                 st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
@@ -1666,58 +1761,55 @@ def main_app():
                           key="btn_eval_creative", type="secondary")
             st.markdown("</div>", unsafe_allow_html=True)
 
-        st.divider()
-        st.metric("Draft checks", st.session_state.monitoring_count)
-        grad_tips = [
-            "IELTS Task 2: state your position in the introduction.",
-            "Use one main idea per body paragraph.",
-            "Academic vocabulary beats long sentences.",
-            "Self-check before asking for a band score.",
+        st.markdown(
+            f'<div class="studio-tip-box"><strong>💡 Step tip</strong><br>{tip}</div>',
+            unsafe_allow_html=True,
+        )
+        writing_tips = [
+            "State your main idea clearly in the introduction.",
+            "One main point per body paragraph works best.",
+            "Self-check before asking for a score.",
+            "Revision is where good writing happens.",
+            "IELTS & TOEFL both reward clear, logical structure.",
         ]
-        st.info(f"💡 {random.choice(grad_tips)}")
-        st.divider()
+        st.info(f"**Hint:** {random.choice(writing_tips)}")
 
-        if st.button("🔄 Reset session", use_container_width=True, on_click=action_reset,
-                       key="btn_reset", type="secondary"):
-            pass
+        st.metric("Draft self-checks", st.session_state.monitoring_count)
+        st.divider()
+        st.button("🔄 Reset session", use_container_width=True, on_click=action_reset,
+                  key="btn_reset", type="secondary")
         if st.button("💾 Save now", use_container_width=True, key="btn_save", type="secondary"):
             if save_current_session():
-                st.toast("Saved to your garden 🌸", icon="✅")
+                st.toast("Saved 🌸", icon="✅")
             else:
                 st.toast("Nothing to save yet.", icon="💡")
         if st.button("Sign out", use_container_width=True, key="btn_signout"):
             do_logout()
 
-    inject_step_button_styles(cur)
-
-    # ── Main: chat workspace ──
-    st.markdown(f"""
-    <div class="chat-header-bar">
-        <div class="header-row">
-            <div>
-                <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
-                <h2 class="header-title">🪷 Writing studio</h2>
-                <div class="header-meta">{st.session_state.user_name} · {round_label}</div>
-            </div>
-            <div class="header-meta" style="text-align:right;max-width:280px;line-height:1.45;">
-                {tip}
+    with col_chat:
+        st.markdown('<div id="chat-column-marker"></div>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="chat-header-bar">
+            <div class="header-row">
+                <div>
+                    <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
+                    <h2 class="header-title">Writing studio</h2>
+                    <div class="header-meta">{st.session_state.user_name} · {round_label}</div>
+                </div>
             </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    st.markdown('<div class="chat-stage-marker"></div>', unsafe_allow_html=True)
-    for msg in st.session_state.messages:
-        with st.chat_message("user" if msg["role"] == "user" else "assistant"):
-            st.markdown(msg["content"])
+        for msg in st.session_state.messages:
+            with st.chat_message("user" if msg["role"] == "user" else "assistant"):
+                st.markdown(msg["content"])
 
-    st.chat_input(
-        "Type your English writing here — IELTS Task 2, TOEFL, or your draft…",
-        key="user_input",
-        on_submit=handle_input,
-    )
-
-    st.caption("⚡ DeepSeek · 🎓 SRL · 📝 IELTS-focused · 🌸 Your words, your voice")
+        st.chat_input(
+            "Type your English writing here…",
+            key="user_input",
+            on_submit=handle_input,
+        )
+        st.caption("⚡ DeepSeek · 🎓 SRL · 📝 IELTS & TOEFL · 🌸 Your words, your voice")
 
 # ========== Run ==========
 init_session_state()
