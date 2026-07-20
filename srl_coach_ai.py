@@ -1293,63 +1293,79 @@ def inject_garden_app_layout_css() -> None:
     section[data-testid="stSidebar"],
     [data-testid="collapsedControl"] { display: none !important; }
 
-    .block-container {
-        padding: 0.85rem 1.75rem 2.5rem !important;
-        max-width: 1480px !important;
-    }
-    div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
-        align-items: flex-start !important;
-        gap: 0 !important;
-        position: relative;
+    .stApp:has(.app-shell-marker),
+    .stApp:has(.app-shell-marker) section.main,
+    .stApp:has(.app-shell-marker) .main .block-container {
+        overflow: hidden !important;
     }
 
-    /* ── Left rail: lily pond panel ── */
+    .block-container {
+        padding: 0.5rem 1.25rem 0.5rem !important;
+        max-width: 1480px !important;
+    }
+    .block-container:has(.app-shell-marker) {
+        height: calc(100dvh - 0.75rem) !important;
+        max-height: calc(100dvh - 0.75rem) !important;
+        overflow: hidden !important;
+        padding-bottom: 0.5rem !important;
+    }
+    div:has(> .app-shell-marker) + div[data-testid="stHorizontalBlock"] {
+        align-items: stretch !important;
+        gap: 0 !important;
+        height: calc(100dvh - 1.25rem) !important;
+        max-height: calc(100dvh - 1.25rem) !important;
+        overflow: hidden !important;
+    }
+
+    /* ── Left rail: FIXED, does not scroll with chat ── */
     [data-testid="column"]:has(#studio-column-marker) {
-        flex: 0 0 min(400px, 34vw) !important;
-        max-width: 420px !important;
-        position: sticky !important;
-        top: 0.85rem !important;
-        align-self: flex-start !important;
-        max-height: calc(100dvh - 1.75rem) !important;
-        overflow-y: auto !important;
-        padding: 1.1rem 1.75rem 1.25rem 0.5rem !important;
+        flex: 0 0 min(320px, 28vw) !important;
+        max-width: 340px !important;
+        position: relative !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        padding: 0.5rem 1.1rem 0.5rem 0.3rem !important;
         margin-right: 0 !important;
-        border-right: none !important;
-        background: transparent !important;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(107,158,143,0.3) transparent;
+        border-right: 3px solid rgba(74, 115, 95, 0.45) !important;
+        box-shadow: 5px 0 28px rgba(47, 74, 64, 0.06) !important;
+        background: linear-gradient(90deg,
+            rgba(255,253,250,0.55) 0%,
+            rgba(255,253,250,0.12) 100%) !important;
+    }
+    [data-testid="column"]:has(#studio-column-marker) > [data-testid="stVerticalBlock"] {
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
     [data-testid="column"]:has(#studio-column-marker)::after {
         content: '';
         position: absolute;
-        top: 0; bottom: 0; right: 0;
-        width: 2px;
-        background: linear-gradient(180deg,
-            transparent 0%,
-            rgba(139,184,212,0.35) 15%,
-            rgba(107,158,143,0.45) 50%,
-            rgba(200,184,216,0.35) 85%,
-            transparent 100%);
-        border-radius: 2px;
+        top: 5%; bottom: 5%; right: -1px;
+        width: 1px;
+        background: rgba(255, 255, 255, 0.75);
+        pointer-events: none;
     }
 
     .studio-hero {
-        margin-bottom: 1.15rem;
-        padding-bottom: 0.85rem;
+        margin-bottom: 0.45rem;
+        padding-bottom: 0.4rem;
         border-bottom: 1px solid rgba(143,179,154,0.15);
     }
     .studio-hero-title {
         font-family: var(--font-display);
-        font-size: clamp(2.35rem, 4.8vw, 3.35rem) !important;
+        font-size: clamp(1.55rem, 2.8vw, 2.15rem) !important;
         font-weight: 700;
         line-height: 1.05;
         color: var(--giverny-ink);
-        margin: 0.25rem 0 0.4rem;
+        margin: 0.15rem 0 0.25rem;
         letter-spacing: -0.01em;
         text-shadow: 0 1px 0 rgba(255,255,255,0.5);
     }
     .studio-hero-sub {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
         color: var(--giverny-muted);
         margin: 0;
         font-style: italic;
@@ -1363,9 +1379,9 @@ def inject_garden_app_layout_css() -> None:
             rgba(240,232,248,0.75) 100%);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255,255,255,0.65);
-        border-radius: 22px;
-        padding: 1rem 1.15rem;
-        margin-bottom: 1.1rem;
+        border-radius: 18px;
+        padding: 0.65rem 0.85rem;
+        margin-bottom: 0.65rem;
         box-shadow: var(--monet-shadow-soft), inset 0 1px 0 rgba(255,255,255,0.9);
         position: relative;
         overflow: hidden;
@@ -1380,31 +1396,31 @@ def inject_garden_app_layout_css() -> None:
     }
     .studio-user-card .user-name {
         font-family: var(--font-display);
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 600;
         color: var(--giverny-ink);
         position: relative;
     }
     .studio-user-card .user-meta {
-        font-size: 0.8rem;
+        font-size: 0.74rem;
         color: var(--giverny-muted);
-        margin-top: 0.25rem;
-        line-height: 1.5;
+        margin-top: 0.15rem;
+        line-height: 1.4;
         position: relative;
     }
 
     .studio-progress-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         font-weight: 600;
-        letter-spacing: 0.2em;
+        letter-spacing: 0.18em;
         text-transform: uppercase;
         color: var(--giverny-pond);
-        margin: 0 0 0.55rem;
+        margin: 0 0 0.35rem;
     }
 
     /* Timeline — watercolor steps */
-    .journey-timeline { margin: 0.35rem 0 0.85rem; }
-    .tl-item { display: flex; gap: 0.75rem; margin-bottom: 0.2rem; }
+    .journey-timeline { margin: 0.1rem 0 0.35rem; }
+    .tl-item { display: flex; gap: 0.45rem; margin-bottom: 0; }
     .tl-rail {
         width: 16px;
         display: flex;
@@ -1423,29 +1439,29 @@ def inject_garden_app_layout_css() -> None:
         content: '';
         flex: 1;
         width: 2px;
-        min-height: 32px;
+        min-height: 22px;
         background: linear-gradient(180deg, rgba(139,184,212,0.4), rgba(200,184,216,0.2));
-        margin-top: 5px;
+        margin-top: 4px;
         border-radius: 2px;
     }
     .tl-content {
         flex: 1;
-        padding: 0.45rem 0.75rem 0.6rem;
-        border-radius: 16px;
+        padding: 0.2rem 0.45rem 0.28rem;
+        border-radius: 10px;
         transition: all 0.25s ease;
     }
     .tl-content strong {
         font-family: var(--font-display);
-        font-size: 1.12rem;
+        font-size: 0.9rem;
         font-weight: 600;
         color: var(--giverny-ink);
         display: block;
     }
     .tl-blurb {
         display: block;
-        font-size: 0.74rem;
+        font-size: 0.68rem;
         color: var(--giverny-muted);
-        margin-top: 0.12rem;
+        margin-top: 0.08rem;
         font-style: italic;
     }
     .tl-num {
@@ -1477,74 +1493,125 @@ def inject_garden_app_layout_css() -> None:
     .studio-guide-box {
         background: linear-gradient(135deg, rgba(107,158,143,0.1), rgba(200,184,216,0.08));
         border: 1px solid rgba(107,158,143,0.18);
-        border-radius: 18px;
-        padding: 0.85rem 1rem;
-        font-size: 0.86rem;
-        line-height: 1.6;
+        border-radius: 12px;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.74rem;
+        line-height: 1.45;
         color: var(--giverny-ink);
-        margin-bottom: 0.85rem;
+        margin-bottom: 0.35rem;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
     }
     .studio-guide-box strong {
         font-family: var(--font-display);
-        font-size: 1.08rem;
+        font-size: 0.95rem;
         display: block;
         margin-bottom: 0.3rem;
         color: var(--giverny-pond);
     }
     .studio-actions {
-        margin-top: 0.85rem;
-        padding-top: 0.85rem;
-        border-top: 1px solid rgba(143,179,154,0.18);
+        margin-top: auto !important;
+        padding-top: 0.45rem;
+        border-top: 1px solid rgba(143,179,154,0.22);
     }
-
-    /* Progress bar — pond gradient */
+    [data-testid="column"]:has(#studio-column-marker) .stProgress {
+        margin-bottom: 0.35rem !important;
+    }
+    [data-testid="column"]:has(#studio-column-marker) .stProgress p {
+        font-size: 0.72rem !important;
+        margin-bottom: 0.15rem !important;
+    }
     [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div {
         background: rgba(143,179,154,0.15) !important;
         border-radius: 999px !important;
-        overflow: hidden;
     }
     [data-testid="column"]:has(#studio-column-marker) .stProgress > div > div > div {
-        background: linear-gradient(90deg, #5f8a72, #6b9e8f, #8bb8d4, #c8b8d8) !important;
+        background: linear-gradient(90deg, #5f8a72, #6b9e8f, #8bb8d4) !important;
         border-radius: 999px !important;
     }
 
-    /* ── Right: glass writing atelier ── */
+    /* ── Right: fixed panel, ONLY this area scrolls ── */
     [data-testid="column"]:has(#chat-column-marker) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
-        padding: 0.5rem 0.5rem 1rem 1.75rem !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        padding: 0.35rem 0.5rem 0.35rem 1.15rem !important;
         background:
             linear-gradient(155deg,
-                rgba(255,253,250,0.55) 0%,
-                rgba(240,248,244,0.4) 40%,
-                rgba(248,240,252,0.35) 100%) !important;
-        border: 1px solid rgba(255,255,255,0.5) !important;
-        border-radius: 32px !important;
+                rgba(255,253,250,0.62) 0%,
+                rgba(240,248,244,0.45) 50%,
+                rgba(248,240,252,0.4) 100%) !important;
+        border: 1px solid rgba(255,255,255,0.55) !important;
+        border-radius: 28px !important;
         box-shadow: var(--monet-shadow), inset 0 1px 0 rgba(255,255,255,0.75) !important;
-        backdrop-filter: blur(16px) saturate(1.2) !important;
-        height: auto !important;
-        overflow: visible !important;
+        backdrop-filter: blur(14px) saturate(1.15) !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
     [data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"] {
-        overflow: visible !important;
-        height: auto !important;
-        max-height: none !important;
-        padding: 0.25rem 0.5rem !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        scroll-behavior: smooth !important;
+        padding: 0.15rem 0.35rem !important;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(107,158,143,0.35) transparent;
     }
 
-    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
+    /* Pinned top: step buttons + header + step options */
+    div:has(> #step-buttons-marker),
+    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"],
+    div:has(> #chat-header-marker),
+    div:has(> #chat-options-marker) {
         position: sticky !important;
         top: 0 !important;
-        z-index: 30 !important;
-        background: linear-gradient(180deg,
-            rgba(253,249,243,0.98) 0%,
-            rgba(253,249,243,0.95) 75%,
+        z-index: 40 !important;
+        background: rgba(253, 249, 243, 0.97) !important;
+        backdrop-filter: blur(10px) !important;
+    }
+    div:has(> #step-buttons-marker) + div[data-testid="stHorizontalBlock"] {
+        padding: 0.25rem 0 0.45rem !important;
+        margin-bottom: 0 !important;
+        border-bottom: 1px solid rgba(143,179,154,0.14) !important;
+    }
+    div:has(> #chat-options-marker) {
+        padding: 0.35rem 0 0.45rem !important;
+        border-bottom: 1px solid rgba(143,179,154,0.1) !important;
+    }
+
+    /* Pinned bottom: input + caption */
+    [data-testid="column"]:has(#chat-column-marker) div:has(> div[data-testid="stChatInput"]) {
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 40 !important;
+        background: linear-gradient(0deg,
+            rgba(253,249,243,0.99) 0%,
+            rgba(253,249,243,0.97) 75%,
             rgba(253,249,243,0) 100%) !important;
-        padding: 0.5rem 0 0.75rem !important;
-        margin-bottom: 0.35rem !important;
-        border-bottom: 1px solid rgba(143,179,154,0.12) !important;
-        border-radius: 0 0 20px 20px;
+        padding: 0.5rem 0 0.15rem !important;
+        margin-top: 0.35rem !important;
+    }
+    #chat-input-footer-marker { display: none !important; height: 0 !important; }
+
+    .chat-options-panel {
+        background: linear-gradient(135deg, rgba(255,252,248,0.95), rgba(232,245,238,0.85));
+        border: 1px solid rgba(107,158,143,0.28);
+        border-radius: 18px;
+        padding: 0.65rem 0.75rem 0.55rem;
+        margin: 0.35rem 0 0.5rem;
+        box-shadow: var(--monet-shadow-soft);
+    }
+    .chat-options-panel .eval-pick-title {
+        font-family: var(--font-display);
+        font-size: 1.05rem;
+        font-weight: 600;
+        text-align: center;
+        color: var(--giverny-ink);
+        margin-bottom: 0.45rem;
     }
 
     .chat-studio-header {
@@ -1661,20 +1728,28 @@ def inject_autoscroll_to_latest() -> None:
     html = """
     <script>
     (function () {
-        const win = window.parent;
-        const doc = win.document;
+        const doc = window.parent.document;
+
+        /* Lock whole-page scroll — only right chat panel may scroll */
+        doc.documentElement.style.overflow = 'hidden';
+        doc.body.style.overflow = 'hidden';
+
         function scrollLatest() {
-            const msgs = doc.querySelectorAll('[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatMessage"]');
+            const vb = doc.querySelector(
+                '[data-testid="column"]:has(#chat-column-marker) > [data-testid="stVerticalBlock"]'
+            );
+            if (!vb) return;
+            vb.scrollTop = vb.scrollHeight;
+            const msgs = doc.querySelectorAll(
+                '[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatMessage"]'
+            );
             if (msgs.length) {
                 msgs[msgs.length - 1].scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
-            const chatInput = doc.querySelector('[data-testid="column"]:has(#chat-column-marker) [data-testid="stChatInput"]');
-            if (chatInput) chatInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            win.scrollTo({ top: doc.body.scrollHeight, behavior: 'smooth' });
         }
         scrollLatest();
-        setTimeout(scrollLatest, 300);
-        setTimeout(scrollLatest, 800);
+        setTimeout(scrollLatest, 250);
+        setTimeout(scrollLatest, 700);
     })();
     </script>
     """
@@ -1977,7 +2052,7 @@ def main_app():
     def action_plan():
         set_step("plan")
         st.session_state.plan_in_progress = True
-        st.session_state.show_draft_choice = True
+        st.session_state.show_draft_choice = False
         st.session_state.show_eval_menu = False
         st.session_state.show_eval_score_menu = False
         st.session_state.user_input = (
@@ -2133,7 +2208,7 @@ def main_app():
             <h1 class="studio-hero-title">SRL Writing<br><span class="gradient-text">Coach</span></h1>
             <p class="studio-hero-sub">🪷 Where words bloom like water lilies</p>
         </div>
-        <div class="monet-ornament">· · ·</div>
+        <div class="monet-ornament" style="margin:0.15rem 0 0.35rem;font-size:0.65rem;opacity:0.5">· · ·</div>
         """, unsafe_allow_html=True)
 
         st.markdown(f"""
@@ -2154,34 +2229,7 @@ def main_app():
             f'<div class="studio-guide-box"><strong>💡 {STEP_LABELS.get(cur, cur)}</strong>{tip}</div>',
             unsafe_allow_html=True,
         )
-        st.caption(f"Draft self-checks: **{st.session_state.monitoring_count}**")
-
-        if st.session_state.show_draft_choice and cur in {"plan", "draft"}:
-            st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown('<div class="eval-pick-title">Draft options</div>', unsafe_allow_html=True)
-            st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
-                      key="btn_draft_has_idea", type="primary")
-            st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
-                      key="btn_draft_no_idea", type="secondary")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        if st.session_state.show_eval_menu and cur == "evaluating":
-            st.markdown('<div class="eval-pick-box">', unsafe_allow_html=True)
-            st.markdown('<div class="eval-pick-title">Evaluation options</div>', unsafe_allow_html=True)
-            st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
-                      key="btn_eval_feedback", type="secondary")
-            st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
-                      key="btn_eval_score_menu", type="secondary")
-            if st.session_state.show_eval_score_menu:
-                st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
-                          key="btn_eval_ielts", type="primary")
-                st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
-                          key="btn_eval_toefl", type="secondary")
-                st.button("CET-4/6", use_container_width=True, on_click=action_eval_cet,
-                          key="btn_eval_cet", type="secondary")
-                st.button("Creative", use_container_width=True, on_click=action_eval_creative,
-                          key="btn_eval_creative", type="secondary")
-            st.markdown("</div>", unsafe_allow_html=True)
+        st.caption(f"Draft checks: {st.session_state.monitoring_count}")
 
         st.markdown('<div class="studio-actions">', unsafe_allow_html=True)
         c1, c2 = st.columns(2)
@@ -2212,6 +2260,7 @@ def main_app():
             render_step_button("interaction", "💬", action_interaction)
 
         st.markdown(f"""
+        <div id="chat-header-marker"></div>
         <div class="chat-studio-header">
             <span class="step-pill">Step {step_num.get(cur, "?")} · {active_label}</span>
             <h2>Writing Studio</h2>
@@ -2219,10 +2268,55 @@ def main_app():
         </div>
         """, unsafe_allow_html=True)
 
+        if st.session_state.show_draft_choice and cur == "draft":
+            st.markdown('<div id="chat-options-marker"></div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="chat-options-panel">'
+                '<div class="eval-pick-title">✍️ Draft — choose your path</div></div>',
+                unsafe_allow_html=True,
+            )
+            oc1, oc2 = st.columns(2, gap="small")
+            with oc1:
+                st.button("✨ I have an idea", use_container_width=True, on_click=action_draft_has_idea,
+                          key="btn_draft_has_idea", type="primary")
+            with oc2:
+                st.button("🤷 I have no idea", use_container_width=True, on_click=action_draft_no_idea,
+                          key="btn_draft_no_idea", type="secondary")
+
+        if st.session_state.show_eval_menu and cur == "evaluating":
+            st.markdown('<div id="chat-options-marker"></div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="chat-options-panel">'
+                '<div class="eval-pick-title">📊 Evaluation — choose type</div></div>',
+                unsafe_allow_html=True,
+            )
+            ec1, ec2 = st.columns(2, gap="small")
+            with ec1:
+                st.button("Feedback only", use_container_width=True, on_click=action_evaluating_no_score,
+                          key="btn_eval_feedback", type="secondary")
+            with ec2:
+                st.button("Score + feedback", use_container_width=True, on_click=action_show_score_frameworks,
+                          key="btn_eval_score_menu", type="secondary")
+            if st.session_state.show_eval_score_menu:
+                sc1, sc2, sc3, sc4 = st.columns(4, gap="small")
+                with sc1:
+                    st.button("IELTS", use_container_width=True, on_click=action_eval_ielts,
+                              key="btn_eval_ielts", type="primary")
+                with sc2:
+                    st.button("TOEFL", use_container_width=True, on_click=action_eval_toefl,
+                              key="btn_eval_toefl", type="secondary")
+                with sc3:
+                    st.button("CET", use_container_width=True, on_click=action_eval_cet,
+                              key="btn_eval_cet", type="secondary")
+                with sc4:
+                    st.button("Creative", use_container_width=True, on_click=action_eval_creative,
+                              key="btn_eval_creative", type="secondary")
+
         for msg in st.session_state.messages:
             with st.chat_message("user" if msg["role"] == "user" else "assistant"):
                 st.markdown(msg["content"])
 
+        st.markdown('<div id="chat-input-footer-marker"></div>', unsafe_allow_html=True)
         st.chat_input("Type your English writing here…", key="user_input", on_submit=handle_input)
         st.caption("🪷 Monet Garden · ⚡ DeepSeek · 📝 IELTS & TOEFL · Your words, your voice")
 
