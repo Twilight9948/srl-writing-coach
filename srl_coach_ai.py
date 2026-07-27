@@ -68,24 +68,160 @@ def _get_google_worksheet():
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     gc = gspread.authorize(creds)
     sheet = gc.open_by_key(sheet_id).sheet1
-    # 确保表头存在
-    expected_header = [
-        "student_id", "student_name", "test_round", "session_id",
-        "plan_completed", "monitoring_count", "message_count", "current_step",
-        "conversation", "created_at",
-    ]
-    if not sheet.get_all_values():
-        sheet.append_row(expected_header)
+    _ensure_sheet_header(sheet)
     return sheet
 
 
+SHEET_COLUMNS = [
+    "student_id",
+    "student_name",
+    "test_round",
+    "session_id",
+    "plan_completed",
+    "monitoring_count",
+    "message_count",
+    "current_step",
+    "consent_given",
+    "session_start",
+    "last_updated",
+    "conversation",
+    "created_at",
+]
+
+
+def _col_letter(n: int) -> str:
+    result = ""
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        result = chr(65 + rem) + result
+    return result
+
+
+def _normalize_header_cell(value: str) -> str:
+    return str(value or "").strip().lower().replace(" ", "_")
+
+
+def _row_is_header(row: list) -> bool:
+    lowered = [_normalize_header_cell(c) for c in row]
+    return "student_id" in lowered or "student_email" in lowered
+
+
+def _row_is_data(row: list) -> bool:
+    if _row_is_header(row):
+        return False
+    text = " ".join(str(c) for c in row)
+    return (
+        "@" in text
+        or "round_" in text
+        or "[{" in text
+        or "2026-" in text
+        or "202607" in text
+    )
+
+
+def _ensure_sheet_header(sheet) -> list[str]:
+    """Create or repair header row for research export."""
+    values = sheet.get_all_values()
+    if not values:
+        sheet.append_row(SHEET_COLUMNS)
+        return SHEET_COLUMNS
+
+    # First row is data (no header) → insert header above
+    if not _row_is_header(values[0]) and _row_is_data(values[0]):
+        sheet.insert_row(SHEET_COLUMNS, index=1)
+        return SHEET_COLUMNS
+
+    header_idx = 0
+    for i, row in enumerate(values[:5]):
+        if _row_is_header(row):
+            header_idx = i
+            break
+
+    header = list(values[header_idx])
+    if not _row_is_header(header):
+        sheet.update("A1", [SHEET_COLUMNS])
+        return SHEET_COLUMNS
+
+    changed = False
+    normalized_existing = {_normalize_header_cell(h) for h in header}
+    for col in SHEET_COLUMNS:
+        if col not in normalized_existing:
+            header.append(col)
+            changed = True
+
+    if changed:
+        end = _col_letter(len(header))
+        target_row = header_idx + 1
+        sheet.update(f"A{target_row}:{end}{target_row}", [header])
+    return header
+
+
+def _canonicalize_sheet_record(raw: dict) -> dict:
+    """Normalize header variants from Google Sheets into canonical keys."""
+    norm = {_normalize_header_cell(k): v for k, v in raw.items() if _normalize_header_cell(k)}
+
+    def pick(*keys, default=""):
+        for key in keys:
+            val = norm.get(key)
+            if val is not None and str(val).strip() != "":
+                return val
+        return default
+
+    return {
+        "student_id": pick("student_id", "email", "student_email"),
+        "student_name": pick("student_name", "name"),
+        "test_round": pick("test_round", "session_round", "round"),
+        "session_id": pick("session_id"),
+        "plan_completed": pick("plan_completed"),
+        "monitoring_count": pick("monitoring_count", "draft_checks"),
+        "message_count": pick("message_count", "messages"),
+        "current_step": pick("current_step", "step"),
+        "consent_given": pick("consent_given", "consent"),
+        "session_start": pick("session_start"),
+        "last_updated": pick("last_updated", "updated_at", "saved_at"),
+        "conversation": pick("conversation"),
+        "created_at": pick("created_at", "saved_at"),
+    }
+
+
 def load_all_sessions_from_sheets():
+    """Load rows from Sheets with robust header matching (fixes empty dashboard cells)."""
     try:
         sheet = _get_google_worksheet()
         if sheet is None:
             return []
-        rows = sheet.get_all_records()
-        return rows if rows else []
+
+        values = sheet.get_all_values()
+        if len(values) < 2:
+            return []
+
+        header_idx = 0
+        for i, row in enumerate(values[:5]):
+            lowered = [_normalize_header_cell(c) for c in row]
+            if "student_id" in lowered or "email" in lowered:
+                header_idx = i
+                break
+
+        headers = [_normalize_header_cell(h) for h in values[header_idx]]
+        rows = []
+        for row in values[header_idx + 1:]:
+            if not any(str(c).strip() for c in row):
+                continue
+            raw = {}
+            for i, header in enumerate(headers):
+                if not header or header.startswith("_empty_"):
+                    continue
+                raw[header] = row[i] if i < len(row) else ""
+            record = _canonicalize_sheet_record(raw)
+            if record.get("student_id") or record.get("session_id"):
+                rows.append(record)
+
+        if rows:
+            return rows
+
+        # Fallback: gspread helper
+        fallback = sheet.get_all_records()
+        return [_canonicalize_sheet_record(r) for r in fallback if r]
     except Exception as e:
         print(f"❌ Load sheets error: {e}")
         return []
@@ -93,25 +229,55 @@ def load_all_sessions_from_sheets():
 
 def save_to_google_sheets(student_id, student_name, test_round, session_id,
                           plan_completed, monitoring_count, message_count,
-                          current_step, conversation):
+                          current_step, conversation, consent_given=False,
+                          session_start=""):
+    """Upsert one row per session_id (update in place, do not duplicate rows)."""
     try:
         sheet = _get_google_worksheet()
         if sheet is None:
             print("ℹ️ Google Sheets not configured — saved locally only.")
             return False
+
+        header = _ensure_sheet_header(sheet)
         trimmed = conversation[-30:] if len(conversation) > 30 else conversation
-        sheet.append_row([
-            student_id,
-            student_name,
-            test_round,
-            session_id,
-            plan_completed,
-            monitoring_count,
-            message_count,
-            current_step,
-            json.dumps(trimmed, ensure_ascii=False),
-            datetime.now().isoformat(),
-        ])
+        now = datetime.now().isoformat()
+
+        record = {
+            "student_id": student_id,
+            "student_name": student_name,
+            "test_round": test_round,
+            "session_id": session_id,
+            "plan_completed": plan_completed,
+            "monitoring_count": monitoring_count,
+            "message_count": message_count,
+            "current_step": current_step,
+            "consent_given": consent_given,
+            "session_start": session_start,
+            "last_updated": now,
+            "conversation": json.dumps(trimmed, ensure_ascii=False),
+            "created_at": now,
+        }
+
+        all_values = sheet.get_all_values()
+        session_col = header.index("session_id") if "session_id" in header else 3
+        target_row = None
+        for row_idx, row in enumerate(all_values[1:], start=2):
+            if len(row) > session_col and str(row[session_col]) == str(session_id):
+                target_row = row_idx
+                break
+
+        if target_row:
+            if "created_at" in header:
+                created_col = header.index("created_at")
+                existing = sheet.row_values(target_row)
+                if created_col < len(existing) and existing[created_col]:
+                    record["created_at"] = existing[created_col]
+            row_values = [record.get(col, "") for col in header]
+            end = _col_letter(len(header))
+            sheet.update(f"A{target_row}:{end}{target_row}", [row_values])
+        else:
+            row_values = [record.get(col, "") for col in header]
+            sheet.append_row(row_values)
         return True
     except Exception as e:
         print(f"❌ Google Sheets error: {e}")
@@ -195,6 +361,8 @@ def save_current_session():
                 "message_count": len(st.session_state.messages),
                 "current_step": st.session_state.current_step,
                 "conversation": st.session_state.messages,
+                "consent_given": st.session_state.get("consent_given", False),
+                "session_start": st.session_state.get("session_start", ""),
             }
         )
         thread.start()
@@ -1041,6 +1209,8 @@ def init_session_state():
         st.session_state.show_draft_choice = False
     if "research_authenticated" not in st.session_state:
         st.session_state.research_authenticated = False
+    if "consent_given" not in st.session_state:
+        st.session_state.consent_given = False
 
 def get_research_password() -> str:
     try:
@@ -1067,11 +1237,12 @@ def get_system_prompt(step: str, eval_mode: str = "no_score",
     }
     return mapping.get(step, PLAN_PROMPT)
 
-def do_login(user_id: str, user_name: str, test_round: str = "round_1"):
+def do_login(user_id: str, user_name: str, test_round: str = "round_1", consent_given: bool = False):
     st.session_state.logged_in = True
     st.session_state.user_id = user_id
     st.session_state.user_name = user_name
     st.session_state.test_round = test_round
+    st.session_state.consent_given = consent_given
     st.session_state.messages = []
     st.session_state.plan_completed = False
     st.session_state.monitoring_count = 0
@@ -1792,7 +1963,7 @@ def show_login_page():
                     "Session 3": "round_3",
                 }
                 round_value = round_map[round_option]
-                do_login(email.strip(), user_name.strip(), round_value)
+                do_login(email.strip(), user_name.strip(), round_value, consent_given=True)
                 st.rerun()
             else:
                 st.warning("Please enter your email and name.")
@@ -1835,40 +2006,63 @@ def show_research_dashboard():
     st.success(f"Loaded **{len(rows)}** session records from Google Sheets.")
 
     # Summary metrics
-    students = {r.get("student_id") for r in rows if r.get("student_id")}
+    students = {
+        str(r.get("student_id")).strip()
+        for r in rows
+        if str(r.get("student_id", "")).strip()
+    }
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Unique students", len(students))
     c2.metric("Total sessions", len(rows))
-    c3.metric("Session 1", sum(1 for r in rows if r.get("test_round") == "round_1"))
-    c4.metric("Session 2+3", sum(1 for r in rows if r.get("test_round") in ("round_2", "round_3")))
+    c3.metric("Session 1", sum(1 for r in rows if str(r.get("test_round", "")).strip() == "round_1"))
+    c4.metric(
+        "Session 2+3",
+        sum(1 for r in rows if str(r.get("test_round", "")).strip() in ("round_2", "round_3")),
+    )
 
     # Filter
     student_ids = sorted(students)
     selected = st.selectbox("Filter by student email", ["All"] + student_ids)
-    filtered = rows if selected == "All" else [r for r in rows if r.get("student_id") == selected]
+    filtered = (
+        rows
+        if selected == "All"
+        else [r for r in rows if str(r.get("student_id", "")).strip() == selected]
+    )
 
     # Table view
     display_rows = []
     for r in filtered:
+        tr = str(r.get("test_round", "")).strip()
+        saved = r.get("last_updated") or r.get("created_at") or ""
         display_rows.append({
             "email": r.get("student_id", ""),
             "name": r.get("student_name", ""),
-            "session": ROUND_LABELS.get(r.get("test_round", ""), r.get("test_round", "")),
+            "session": ROUND_LABELS.get(tr, tr),
             "messages": r.get("message_count", ""),
             "step": r.get("current_step", ""),
             "plan_done": r.get("plan_completed", ""),
             "draft_checks": r.get("monitoring_count", ""),
-            "saved_at": r.get("created_at", ""),
+            "consent": r.get("consent_given", ""),
+            "last_updated": str(saved)[:19],
         })
     st.dataframe(display_rows, use_container_width=True, hide_index=True)
+
+    if rows and not any(d.get("email") for d in display_rows):
+        st.warning(
+            "Rows were loaded but columns may be misaligned in Google Sheets. "
+            "Open your sheet and ensure **row 1** contains headers starting with "
+            "`student_id`, `student_name`, `test_round` …"
+        )
 
     # Conversation detail
     st.markdown("#### Conversation detail")
     for i, r in enumerate(reversed(filtered[-20:])):
+        tr = str(r.get("test_round", "")).strip()
+        ts = str(r.get("last_updated") or r.get("created_at") or "")[:19]
         label = (
-            f"{r.get('student_name', '?')} · "
-            f"{ROUND_LABELS.get(r.get('test_round', ''), '?')} · "
-            f"{r.get('created_at', '')[:19]}"
+            f"{r.get('student_name') or r.get('student_id') or 'Unknown'} · "
+            f"{ROUND_LABELS.get(tr, tr or '?')} · "
+            f"{ts or 'no timestamp'}"
         )
         with st.expander(label):
             try:
